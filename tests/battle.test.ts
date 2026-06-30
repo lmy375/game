@@ -1,0 +1,221 @@
+import { describe, it, expect } from "vitest";
+import {
+  BattleSimulator,
+  EnemyAI,
+  loadLevel,
+  computeMoveRange,
+  findPath,
+  resolveHitCells,
+  previewSkill,
+  livingUnits,
+  unitById,
+  evaluateForEnemy,
+  BattleAction,
+} from "@core/index";
+import { createRegistry, getLevel } from "@data/index";
+import { makeState, makeUnit } from "./helpers";
+
+const registry = createRegistry();
+
+describe("移动范围与寻路", () => {
+  it("空地上移动范围 = 曼哈顿菱形", () => {
+    const u = makeUnit("player", { x: 4, y: 4 }, { stats: { hp: 100, attack: 20, magic: 30, defense: 0, moveRange: 2 } });
+    const s = makeState(9, 9, [u]);
+    const range = computeMoveRange(s, u.instanceId);
+    expect(range.length).toBe(12); // 半径2的菱形去掉中心
+  });
+
+  it("墙体阻挡寻路绕行", () => {
+    const u = makeUnit("player", { x: 0, y: 0 }, { stats: { hp: 100, attack: 20, magic: 30, defense: 0, moveRange: 9 } });
+    const s = makeState(
+      5,
+      5,
+      [u],
+      [
+        { x: 1, y: 0, terrain: "wall" },
+        { x: 1, y: 1, terrain: "wall" },
+      ]
+    );
+    const path = findPath(s, u.instanceId, { x: 2, y: 0 });
+    expect(path).not.toBeNull();
+    expect(path!.length).toBeGreaterThan(3); // 必须绕过墙
+  });
+});
+
+describe("十字火焰：聚怪后 AOE", () => {
+  it("中心格高伤 + 燃烧，四周格低伤", () => {
+    const caster = makeUnit("player", { x: 0, y: 4 }, { skills: ["cross_fire"], stats: { hp: 100, attack: 10, magic: 100, defense: 0, moveRange: 3 } });
+    const center = makeUnit("enemy", { x: 4, y: 4 }, { defId: "enemy_soldier", stats: { hp: 200, attack: 0, magic: 0, defense: 0, moveRange: 0 } });
+    const arm = makeUnit("enemy", { x: 5, y: 4 }, { defId: "enemy_soldier", stats: { hp: 200, attack: 0, magic: 0, defense: 0, moveRange: 0 } });
+    const state = makeState(9, 9, [caster, center, arm]);
+    const sim = new BattleSimulator(registry);
+
+    const res = sim.simulate(state, { type: "skill", actorId: caster.instanceId, skillId: "cross_fire", targetCell: { x: 4, y: 4 } });
+    expect(res.ok).toBe(true);
+    const c2 = unitById(res.nextState, center.instanceId)!;
+    const a2 = unitById(res.nextState, arm.instanceId)!;
+    expect(200 - c2.hp).toBe(150); // 100*1.5
+    expect(200 - a2.hp).toBe(80); // 100*0.8
+    expect(c2.statuses.some((s) => s.id === "burn")).toBe(true);
+  });
+});
+
+describe("贯穿射击：直线多杀", () => {
+  it("命中一条线上的所有敌人", () => {
+    const caster = makeUnit("player", { x: 0, y: 2 }, { skills: ["pierce_shot"], stats: { hp: 100, attack: 100, magic: 0, defense: 0, moveRange: 3 } });
+    const enemies = [1, 2, 3].map((dx) =>
+      makeUnit("enemy", { x: dx, y: 2 }, { defId: "e", stats: { hp: 200, attack: 0, magic: 0, defense: 0, moveRange: 0 } })
+    );
+    const state = makeState(9, 9, [caster, ...enemies]);
+    const { cells } = resolveHitCells(caster, registry.skill("pierce_shot"), registry, { direction: "right" });
+    expect(cells.map((c) => c.pos.x).sort()).toEqual([1, 2, 3, 4]);
+
+    const sim = new BattleSimulator(registry);
+    const res = sim.simulate(state, { type: "skill", actorId: caster.instanceId, skillId: "pierce_shot", direction: "right" });
+    for (const e of enemies) {
+      expect(unitById(res.nextState, e.instanceId)!.hp).toBe(100); // 200 - 100
+    }
+  });
+});
+
+describe("狂风聚拢：为 AOE 创造阵型", () => {
+  it("把分散敌人拉向中心且不造成伤害", () => {
+    const caster = makeUnit("player", { x: 0, y: 4 }, { skills: ["gale_gather"] });
+    const center = { x: 4, y: 4 };
+    const e1 = makeUnit("enemy", { x: 5, y: 5 }, { defId: "e" }); // 3x3 角落
+    const e2 = makeUnit("enemy", { x: 3, y: 3 }, { defId: "e" });
+    const state = makeState(9, 9, [caster, e1, e2]);
+    const sim = new BattleSimulator(registry);
+    const before1 = e1.hp;
+    const md = (p: { x: number; y: number }) => Math.abs(p.x - center.x) + Math.abs(p.y - center.y);
+    const res = sim.simulate(state, { type: "skill", actorId: caster.instanceId, skillId: "gale_gather", targetCell: center });
+    const n1 = unitById(res.nextState, e1.instanceId)!;
+    const n2 = unitById(res.nextState, e2.instanceId)!;
+    expect(n1.hp).toBe(before1); // 无伤害
+    expect(md(n1.pos)).toBeLessThan(md(e1.pos)); // 更靠近中心
+    expect(md(n2.pos)).toBeLessThan(md(e2.pos));
+  });
+});
+
+describe("推入危险地形", () => {
+  it("横向推击把敌人推入火焰并受伤", () => {
+    const caster = makeUnit("player", { x: 2, y: 4 }, { skills: ["push_wave"] });
+    const enemy = makeUnit("enemy", { x: 3, y: 4 }, { defId: "e", stats: { hp: 80, attack: 0, magic: 0, defense: 0, moveRange: 0 } });
+    const state = makeState(9, 9, [caster, enemy], [{ x: 5, y: 4, terrain: "fire" }]);
+    const sim = new BattleSimulator(registry);
+    const res = sim.simulate(state, { type: "skill", actorId: caster.instanceId, skillId: "push_wave", direction: "right" });
+    const n = unitById(res.nextState, enemy.instanceId)!;
+    expect(n.pos).toEqual({ x: 5, y: 4 }); // 被推 2 格进火焰
+    expect(n.hp).toBe(60); // 火焰 20 伤害
+    expect(res.events.some((e) => e.type === "terrain_triggered")).toBe(true);
+  });
+});
+
+describe("预览不修改真实状态", () => {
+  it("previewSkill 返回结果态但不动原状态", () => {
+    const caster = makeUnit("player", { x: 0, y: 4 }, { skills: ["cross_fire"], stats: { hp: 100, attack: 0, magic: 100, defense: 0, moveRange: 3 } });
+    const enemy = makeUnit("enemy", { x: 3, y: 4 }, { defId: "e", stats: { hp: 200, attack: 0, magic: 0, defense: 0, moveRange: 0 } });
+    const state = makeState(9, 9, [caster, enemy]);
+    const sim = new BattleSimulator(registry);
+    const hpBefore = enemy.hp;
+    const preview = previewSkill(state, sim, registry, caster.instanceId, "cross_fire", { cell: { x: 3, y: 4 } });
+    expect(preview.hitCells.length).toBe(5);
+    expect(unitById(preview.resultState, enemy.instanceId)!.hp).toBeLessThan(hpBefore);
+    expect(unitById(state, enemy.instanceId)!.hp).toBe(hpBefore); // 原状态不变
+  });
+});
+
+describe("回合与状态", () => {
+  it("end_turn 切换阵营并结算燃烧", () => {
+    const enemy = makeUnit("enemy", { x: 3, y: 4 }, { statuses: [{ id: "burn", duration: 2, magnitude: 10 }] });
+    const player = makeUnit("player", { x: 0, y: 0 });
+    const state = makeState(9, 9, [player, enemy]);
+    const sim = new BattleSimulator(registry);
+    const res = sim.simulate(state, { type: "end_turn" });
+    expect(res.nextState.turn).toBe("enemy");
+    expect(unitById(res.nextState, enemy.instanceId)!.hp).toBe(90); // 燃烧 10
+  });
+});
+
+describe("敌人 AI", () => {
+  it("planTurn 返回以 end_turn 结尾的行动序列", () => {
+    const state = loadLevel(getLevel("level_001"), registry);
+    // 切到敌方回合
+    const sim = new BattleSimulator(registry);
+    const enemyTurn = sim.simulate(state, { type: "end_turn" }).nextState;
+    const ai = new EnemyAI(registry, sim);
+    const actions = ai.planTurn(enemyTurn);
+    expect(actions.length).toBeGreaterThan(0);
+    expect(actions[actions.length - 1]).toEqual<BattleAction>({ type: "end_turn" });
+  });
+
+  it("评分器惩罚扎堆（敌人不愿成为 AOE 靶子）", () => {
+    const player = makeUnit("player", { x: 0, y: 0 });
+    const spread = makeState(10, 10, [player, makeUnit("enemy", { x: 5, y: 2 }), makeUnit("enemy", { x: 8, y: 7 })]);
+    const clustered = makeState(10, 10, [player, makeUnit("enemy", { x: 5, y: 5 }), makeUnit("enemy", { x: 5, y: 6 })]);
+    expect(evaluateForEnemy(spread)).toBeGreaterThan(evaluateForEnemy(clustered));
+  });
+
+  it("当前敌方单位会靠近玩家", () => {
+    const enemy = makeUnit("enemy", { x: 9, y: 5 }, { defId: "enemy_soldier", aiProfile: "melee", skills: ["normal_attack"], stats: { hp: 80, attack: 18, magic: 0, defense: 6, moveRange: 3 } });
+    const player = makeUnit("player", { x: 2, y: 5 }, { skills: ["normal_attack"] });
+    const state = makeState(12, 12, [enemy, player]); // enemy 为 units[0]，即当前行动单位
+    const sim = new BattleSimulator(registry);
+    const ai = new EnemyAI(registry, sim);
+    let working = state;
+    for (const act of ai.planTurn(state)) {
+      const r = sim.simulate(working, act);
+      if (r.ok) working = r.nextState;
+    }
+    const moved = unitById(working, enemy.instanceId)!;
+    expect(Math.abs(moved.pos.x - player.pos.x)).toBeLessThan(9 - 2); // 比初始更近
+  });
+});
+
+describe("完整对局可推进（速度初动）", () => {
+  it("逐个单位按速度行动直至分出胜负", () => {
+    let state = loadLevel(getLevel("level_001"), registry);
+    const sim = new BattleSimulator(registry);
+    const ai = new EnemyAI(registry, sim);
+
+    let guard = 0;
+    while (!state.outcome && guard++ < 500) {
+      const actor = state.activeUnitId ? unitById(state, state.activeUnitId) : undefined;
+      if (!actor) break;
+
+      if (actor.faction === "enemy") {
+        for (const act of ai.planTurn(state)) {
+          const r = sim.simulate(state, act);
+          if (r.ok) state = r.nextState;
+          if (state.outcome) break;
+        }
+        continue;
+      }
+
+      // 玩家单位简单策略：靠近最近敌人，能相邻就普攻，然后结束行动。
+      const enemies = livingUnits(state, "enemy");
+      if (enemies.length === 0) break;
+      const target = enemies[0];
+      if (!actor.movedThisTurn) {
+        const range = computeMoveRange(state, actor.instanceId);
+        range.sort(
+          (p, q) =>
+            Math.abs(p.x - target.pos.x) + Math.abs(p.y - target.pos.y) -
+            (Math.abs(q.x - target.pos.x) + Math.abs(q.y - target.pos.y))
+        );
+        if (range.length) {
+          const r = sim.simulate(state, { type: "move", actorId: actor.instanceId, moveTo: range[0] });
+          if (r.ok) state = r.nextState;
+        }
+      }
+      const me = unitById(state, actor.instanceId)!;
+      const adj = livingUnits(state, "enemy").find((e) => Math.abs(e.pos.x - me.pos.x) + Math.abs(e.pos.y - me.pos.y) === 1);
+      if (adj) {
+        const r = sim.simulate(state, { type: "skill", actorId: actor.instanceId, skillId: "normal_attack", targetCell: adj.pos });
+        if (r.ok) state = r.nextState;
+      }
+      state = sim.simulate(state, { type: "end_turn" }).nextState;
+    }
+    expect(state.outcome).not.toBeNull();
+  });
+});

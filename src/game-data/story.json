@@ -1,0 +1,65 @@
+{
+  "startId": "n_title",
+  "nodes": {
+    "n_title": {
+      "id": "n_title",
+      "kind": "title",
+      "next": "n_cut_intro",
+      "title": "阵形之术",
+      "subtitle": "回合制战棋 · Demo"
+    },
+    "n_cut_intro": {
+      "id": "n_cut_intro",
+      "kind": "cutscene",
+      "next": "n_battle_1",
+      "lines": [
+        { "speaker": "旁白", "glyph": "", "text": "边境的哨站燃起了狼烟。三名学徒受命前去清剿来犯的敌兵。" },
+        { "speaker": "风术士", "glyph": "风", "text": "敌人散在前方。先用狂风把他们聚到一处。" },
+        { "speaker": "火法师", "glyph": "火", "text": "聚好了，我一发十字火焰就能全收。" }
+      ]
+    },
+    "n_battle_1": {
+      "id": "n_battle_1",
+      "kind": "battle",
+      "next": "n_result_1",
+      "levelId": "level_001"
+    },
+    "n_result_1": {
+      "id": "n_result_1",
+      "kind": "result",
+      "next": "n_cut_mid"
+    },
+    "n_cut_mid": {
+      "id": "n_cut_mid",
+      "kind": "cutscene",
+      "next": "n_battle_2",
+      "lines": [
+        { "speaker": "旁白", "glyph": "", "text": "首战告捷。短暂的休整后，更密集的敌阵出现在峡谷另一端。" },
+        { "speaker": "枪兵", "glyph": "枪", "text": "我练成贯穿射击了——把他们排成一列，一击就能洞穿数人。" },
+        { "speaker": "风术士", "glyph": "风", "text": "交给我，横向推击能把他们推成整齐的一排。" }
+      ]
+    },
+    "n_battle_2": {
+      "id": "n_battle_2",
+      "kind": "battle",
+      "next": "n_result_2",
+      "levelId": "level_002"
+    },
+    "n_result_2": {
+      "id": "n_result_2",
+      "kind": "result",
+      "next": "n_ending"
+    },
+    "n_ending": {
+      "id": "n_ending",
+      "kind": "ending",
+      "next": null,
+      "title": "Demo 通关",
+      "lines": [
+        "峡谷恢复了平静。学徒们在实战中变强，也学会了彼此配合的阵形之术。",
+        "更远的战场仍在等待——但那是另一段故事了。",
+        "感谢游玩本 Demo。"
+      ]
+    }
+  }
+}

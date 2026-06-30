@@ -1,0 +1,8 @@
+@import url("../web/styles.css");
+
+/* Pixi 自建 canvas 挂到 #stage 里 */
+#stage { line-height: 0; border-radius: 10px; overflow: hidden; }
+#stage canvas { display: block; border-radius: 10px; touch-action: none; cursor: pointer; }
+
+/* 菜单/确认条/横幅定位在 board-wrap 内,沿用 web 样式 */
+#board-wrap { position: relative; }

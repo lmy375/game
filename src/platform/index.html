@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>阵形之术 — 表现层对比</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      :root {
+        --bg: #0c0e13;
+        --panel: #1b1f29;
+        --panel2: #232836;
+        --line: #2e3445;
+        --text: #e6e9f0;
+        --muted: #8b93a7;
+        --accent: #ffe066;
+      }
+      html, body { height: 100%; }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      header {
+        flex: 0 0 auto;
+        padding: 12px 18px 0;
+      }
+      .titlebar { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+      h1 { font-size: 19px; font-weight: 700; }
+      h1 small { color: var(--muted); font-size: 12px; font-weight: 400; }
+
+      .tabs { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+      .tab {
+        background: var(--panel2); color: var(--text);
+        border: 1px solid var(--line); border-bottom: none;
+        border-radius: 10px 10px 0 0; padding: 9px 18px;
+        font-size: 14px; cursor: pointer; display: flex; flex-direction: column; gap: 2px;
+        min-width: 150px; transition: background .15s, color .15s, border-color .15s;
+      }
+      .tab b { font-size: 14px; }
+      .tab small { font-size: 11px; color: var(--muted); }
+      .tab:hover:not(.active) { border-color: var(--accent); }
+      .tab.active {
+        background: var(--panel); color: var(--accent);
+        border-color: var(--line); position: relative; top: 1px;
+      }
+      .tab.active small { color: #cdd4e2; }
+
+      main {
+        flex: 1 1 auto; min-height: 0; margin: 0 12px 12px;
+        border: 1px solid var(--line); border-radius: 0 10px 10px 10px;
+        background: var(--panel); position: relative; overflow: hidden;
+      }
+      .frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--bg); }
+      .loading {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+        color: var(--muted); font-size: 14px; letter-spacing: .5px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="titlebar">
+        <h1>阵形之术 <small>Project Formation · 表现层对比</small></h1>
+      </div>
+      <nav class="tabs" id="tabs">
+        <button class="tab active" data-src="/web/index.html"><b>朴素 2D</b><small>Canvas · 原始</small></button>
+        <button class="tab" data-src="/three/index.html"><b>2.5D</b><small>Three.js · 3D 场景</small></button>
+        <button class="tab" data-src="/pixi/index.html"><b>2D 华丽</b><small>PixiJS · 粒子/震动</small></button>
+      </nav>
+    </header>
+    <main id="stageArea">
+      <div class="loading" id="loading">点击上方标签加载对应风格…</div>
+    </main>
+
+    <script>
+      // 每个标签对应一个独立 iframe:首次激活才创建并加载(懒加载重的 WebGL 版),
+      // 之后用 display 显隐,切回时保留各自战斗进度,互不干扰。
+      const tabs = Array.from(document.querySelectorAll(".tab"));
+      const area = document.getElementById("stageArea");
+      const loading = document.getElementById("loading");
+      const frames = new Map();
+
+      function activate(tab) {
+        const src = tab.dataset.src;
+        tabs.forEach((t) => t.classList.toggle("active", t === tab));
+        for (const [s, f] of frames) f.style.display = s === src ? "block" : "none";
+
+        let frame = frames.get(src);
+        if (!frame) {
+          frame = document.createElement("iframe");
+          frame.className = "frame";
+          frame.src = src;
+          frames.set(src, frame);
+          area.appendChild(frame);
+        }
+        if (loading) loading.style.display = "none";
+      }
+
+      tabs.forEach((tab) => tab.addEventListener("click", () => activate(tab)));
+      activate(tabs[0]); // 默认加载第一个
+    </script>
+  </body>
+</html>

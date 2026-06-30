@@ -1,0 +1,21 @@
+{
+  "//": "独立类型检查用(pnpm typecheck:cocos)。typings/cc.d.ts 是离线 shim,仅供本仓库 tsc;在 Cocos Creator 编辑器中打开时,编辑器用它自己生成的 cc 类型,本文件与 typings/ 均不参与编辑器编译(它们在 assets/ 之外)。",
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": false,
+    "experimentalDecorators": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "noEmit": true,
+    "types": []
+  },
+  "include": ["assets/scripts/**/*.ts", "typings/**/*.d.ts"]
+}
