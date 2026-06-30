@@ -9,31 +9,18 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "dev:three": "vite --config vite.three.config.ts",
-    "build:three": "tsc --noEmit && vite build --config vite.three.config.ts",
-    "preview:three": "vite preview --config vite.three.config.ts",
-    "dev:pixi": "vite --config vite.pixi.config.ts",
-    "build:pixi": "tsc --noEmit && vite build --config vite.pixi.config.ts",
-    "preview:pixi": "vite preview --config vite.pixi.config.ts",
-    "dev:showcase": "vite --config vite.showcase.config.ts",
-    "build:showcase": "tsc --noEmit && vite build --config vite.showcase.config.ts",
-    "preview:showcase": "vite preview --config vite.showcase.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
-    "sync:cocos": "node cocos/scripts/sync-core.mjs",
-    "typecheck:cocos": "pnpm sync:cocos && tsc -p cocos/tsconfig.cocos.json --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "^26.0.1",
-    "@types/three": "^0.185.0",
     "jsdom": "^29.1.1",
     "typescript": "^5.5.4",
     "vite": "^5.4.0",
     "vitest": "^2.0.5"
   },
   "dependencies": {
-    "pixi.js": "^8.19.0",
-    "three": "^0.185.0"
+    "pixi.js": "^8.19.0"
   }
 }

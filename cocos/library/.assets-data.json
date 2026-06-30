@@ -1,0 +1,305 @@
+{
+  "74957882-7f81-4dd5-8d36-7b944c5e1365": {
+    "url": "db://assets/scripts",
+    "value": {},
+    "versionCode": 1
+  },
+  "a173d3ad-8e93-4e22-b596-2e4f189447cd": {
+    "url": "db://assets/scripts/anim",
+    "value": {},
+    "versionCode": 1
+  },
+  "f24da5a0-acff-4722-a9ba-ed35938b03cb": {
+    "url": "db://assets/scripts/bootstrap",
+    "value": {},
+    "versionCode": 1
+  },
+  "196e626e-159e-4a3d-9994-8d205c04506c": {
+    "url": "db://assets/scripts/core",
+    "value": {},
+    "versionCode": 1
+  },
+  "e2f6bf92-3931-4bcc-adea-01cfcfda3a17": {
+    "url": "db://assets/scripts/game-core",
+    "value": {},
+    "versionCode": 1
+  },
+  "cac96561-e583-4c2f-88cc-5338bfd489bf": {
+    "url": "db://assets/scripts/game-data",
+    "value": {},
+    "versionCode": 1
+  },
+  "44d897b0-bc57-4e27-9bdd-08cb8dd6000b": {
+    "url": "db://assets/scripts/input",
+    "value": {},
+    "versionCode": 1
+  },
+  "742907e1-a518-491b-8a29-7c27197966b5": {
+    "url": "db://assets/scripts/view",
+    "value": {},
+    "versionCode": 1
+  },
+  "e15a1f73-9d1b-42e7-9ce2-fc7d8bb4239d": {
+    "url": "db://assets/scripts/game-core/ai",
+    "value": {},
+    "versionCode": 1
+  },
+  "f6fcaf52-bdcd-407c-a30b-ce499448317e": {
+    "url": "db://assets/scripts/game-core/board",
+    "value": {},
+    "versionCode": 1
+  },
+  "e790b45b-028e-46c4-83d8-1b8f765ce04f": {
+    "url": "db://assets/scripts/game-core/content",
+    "value": {},
+    "versionCode": 1
+  },
+  "a454a170-0119-40e7-9c36-438180470a2a": {
+    "url": "db://assets/scripts/game-core/displacement",
+    "value": {},
+    "versionCode": 1
+  },
+  "eb18637d-4d7b-4f9d-876e-8c6f104c4a68": {
+    "url": "db://assets/scripts/game-core/evaluator",
+    "value": {},
+    "versionCode": 1
+  },
+  "161bc223-1dee-4bd2-9b34-04587194d170": {
+    "url": "db://assets/scripts/game-core/pathfinding",
+    "value": {},
+    "versionCode": 1
+  },
+  "a8fb6b31-ca1e-4e66-82a0-5777a12a550e": {
+    "url": "db://assets/scripts/game-core/pattern",
+    "value": {},
+    "versionCode": 1
+  },
+  "05be70d5-c4e8-4e64-8e47-01508b53ac5c": {
+    "url": "db://assets/scripts/game-core/simulator",
+    "value": {},
+    "versionCode": 1
+  },
+  "e952676f-4bcd-44e1-94d8-0ae86052f470": {
+    "url": "db://assets/scripts/game-core/skill",
+    "value": {},
+    "versionCode": 1
+  },
+  "87a157ef-12ab-44f5-b55f-be263d6a5e95": {
+    "url": "db://assets/scripts/game-core/state",
+    "value": {},
+    "versionCode": 1
+  },
+  "e176a3d8-4de9-4ba4-85f3-5b63b5ec47ba": {
+    "url": "db://assets/scripts/game-core/turn",
+    "value": {},
+    "versionCode": 1
+  },
+  "3be0937c-055b-4f4e-9e29-8e07afc64ae9": {
+    "url": "db://assets/scripts/game-core/unit",
+    "value": {},
+    "versionCode": 1
+  },
+  "e50889f4-cdae-47d9-85cb-f222ab4dcfd5": {
+    "url": "db://assets/scripts/anim/EventAnimator.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "11f3bf37-ec33-469e-91e0-4c09c5a9252c": {
+    "url": "db://assets/scripts/anim/SkillEffects.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "068905b0-56e2-4e88-8d41-2f5827c74b1f": {
+    "url": "db://assets/scripts/bootstrap/Bootstrap.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "eea60c6e-1106-4411-9266-24fdf8bc3688": {
+    "url": "db://assets/scripts/core/CoordMap.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "d46432db-7f7f-4202-addf-5cf89484f206": {
+    "url": "db://assets/scripts/core/types.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "31d5ecba-b91e-452e-b05b-b78137bc690b": {
+    "url": "db://assets/scripts/game-core/index.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "0ebe08fd-cb8a-47bf-968a-33b461c5891e": {
+    "url": "db://assets/scripts/game-data/index.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "9c21d427-17d6-42ef-85b4-8d9d58c4b082": {
+    "url": "db://assets/scripts/game-data/levels.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "2cf6895e-11fa-4ec6-b8cd-b17be060c754": {
+    "url": "db://assets/scripts/game-data/patterns.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "59bf2363-4e4e-4fc4-b4ce-e4d4d42c8d8d": {
+    "url": "db://assets/scripts/game-data/skills.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "e81daf9c-1f3c-46cf-85b5-4a58235a7cf8": {
+    "url": "db://assets/scripts/game-data/units.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "b41e4256-087d-4116-a062-3593dec2f033": {
+    "url": "db://assets/scripts/input/InputController.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "1139a999-3416-4d17-bc6a-3aaefe9ff5bd": {
+    "url": "db://assets/scripts/view/BoardView.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "6436b58b-3bb3-4a34-86cd-d151ef117ec0": {
+    "url": "db://assets/scripts/view/Factory.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "9cbb8ae3-0169-4dd3-a7d2-c6c729b9aa81": {
+    "url": "db://assets/scripts/view/HudView.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "c20f9a80-f19a-45c3-8ed1-88c7044e975b": {
+    "url": "db://assets/scripts/view/OverlayView.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "ddde238b-aac3-479e-abfc-d278b0c333b2": {
+    "url": "db://assets/scripts/view/Palette.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "d169fb44-15ba-4a1d-a73a-08f2e3c3ea1d": {
+    "url": "db://assets/scripts/view/SceneRig.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "2ccb17d1-4653-4b03-88cb-f3ddd1febd31": {
+    "url": "db://assets/scripts/view/UnitView.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "c6957448-0e10-4fe2-956c-dbfe50231d99": {
+    "url": "db://assets/scripts/game-core/ai/EnemyAI.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "fd47a3c4-84ad-4d81-bd97-960d0dc54a82": {
+    "url": "db://assets/scripts/game-core/board/GridBoard.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "07a6e211-3512-4bba-848e-1eb002248890": {
+    "url": "db://assets/scripts/game-core/board/geometry.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "196e74fa-ecfa-4c48-8e0d-49ea535e6313": {
+    "url": "db://assets/scripts/game-core/board/terrain.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "3013c092-30a7-45ff-b987-36917f20d6e3": {
+    "url": "db://assets/scripts/game-core/content/Level.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "ea8f6130-4cee-4236-a219-b2f4a548dcb6": {
+    "url": "db://assets/scripts/game-core/content/Registry.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "ea93711d-0043-42da-837a-491c2caa778d": {
+    "url": "db://assets/scripts/game-core/displacement/displacement.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "f366341c-5950-422a-8255-2d65de4c90f1": {
+    "url": "db://assets/scripts/game-core/evaluator/BattleEvaluator.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "cbc1d7c9-161b-4291-9658-04c0b4b716bd": {
+    "url": "db://assets/scripts/game-core/pathfinding/pathfinding.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "8f7bfb8a-9ca0-427c-88ee-4ccbff3f8ac8": {
+    "url": "db://assets/scripts/game-core/pattern/Pattern.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "0c5b4f83-82c9-4650-95a3-265ef6df2ad7": {
+    "url": "db://assets/scripts/game-core/simulator/BattleSimulator.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "eefc8e3d-61b5-43f2-bc70-e76f0748afbe": {
+    "url": "db://assets/scripts/game-core/simulator/preview.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "b56a235a-f112-44d9-b4f3-14a19d6d1ccb": {
+    "url": "db://assets/scripts/game-core/skill/Skill.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "2a22b4ce-06b6-408b-b082-e5636b5f3c6e": {
+    "url": "db://assets/scripts/game-core/skill/combat.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "c413fa0f-2ad0-480e-9188-5f09eff0771a": {
+    "url": "db://assets/scripts/game-core/skill/resolveSkill.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "17da4ff7-782b-42b2-81fe-b3b718a1a975": {
+    "url": "db://assets/scripts/game-core/state/BattleState.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "10dd9f2c-2fe0-43e5-b633-9f942df0e45a": {
+    "url": "db://assets/scripts/game-core/state/events.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "2c1b6f87-904e-4f81-a90a-da0a7e93cec4": {
+    "url": "db://assets/scripts/game-core/turn/turn.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "87b1dbdf-6a58-41e1-bb67-6e11ccdb53dc": {
+    "url": "db://assets/scripts/game-core/unit/Unit.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "b19ee4e1-9615-45ad-84a7-acfc435e35ef": {
+    "url": "db://assets/main.scene",
+    "value": {
+      "depends": [
+        "d032ac98-05e1-4090-88bb-eb640dcb5fc1@b47c0",
+        "6f01cf7f-81bf-4a7e-bd5d-0afc19696480@b47c0"
+      ],
+      "dependScripts": [
+        "068905b0-56e2-4e88-8d41-2f5827c74b1f"
+      ]
+    },
+    "versionCode": 2
+  }
+}

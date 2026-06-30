@@ -1,8 +1,9 @@
 import { defineConfig } from "vite";
 import { resolve } from "node:path";
 
+// 唯一表现层：PixiJS 2D。（web/three/cocos 已下线。）
 export default defineConfig({
-  root: "src/platform/web",
+  root: "src/platform/pixi",
   resolve: {
     alias: {
       "@core": resolve(__dirname, "src/game-core"),

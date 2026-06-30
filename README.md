@@ -4,7 +4,8 @@
 本仓库按 [docs/PRD.md](docs/PRD.md) 实现 MVP，可在浏览器直接游玩。
 
 > 架构遵循 PRD §15 / §20.5：战斗逻辑为**纯 TypeScript**（`game-core`），不依赖任何引擎；
-> 表现层（Web Canvas）只消费 `BattleState` 与 `BattleEvent`。因此可平滑移植到 Cocos / 微信小游戏。
+> 玩家操作（`interaction`）、养成/剧情（`game-meta` + `campaign`）也都是引擎无关的纯逻辑；
+> 表现层（**PixiJS 2D**，DOM HUD）只消费 `BattleState` / `BattleEvent` 与各层的 ViewModel，因此可平滑移植到其它引擎或小游戏平台。
 
 ## 快速开始
 
@@ -12,15 +13,19 @@
 
 ```bash
 pnpm install
-pnpm dev          # 启动后打开终端给出的本地地址即可游玩
-pnpm test         # 34 个核心 + 表现层单元/集成测试
+pnpm dev          # 启动 PixiJS 表现层，打开终端给出的本地地址即可游玩
+pnpm test         # 58 个测试（内核 / 交互 / 养成 / 流程）
 pnpm typecheck    # 严格模式类型检查
-pnpm build        # 生产构建（产物 ~13KB gzip）
+pnpm build        # 生产构建（PixiJS 运行时，~108KB gzip）
 ```
+
+> 表现层只保留 **PixiJS**（web Canvas / Three.js 2.5D / Cocos 已下线）。
+> `game-core`/`interaction`/`game-meta`/`campaign` 为引擎无关纯逻辑，若要新增表现层只需实现 `SessionHost` 与 `CampaignHost`。
 
 ## 怎么玩
 
-1. 顶部下拉切换关卡（共 3 个教学关）。右侧「行动顺序」显示按**速度**排出的出手序列。
+0. 启动进入**标题页** → 「新游戏」沿剧情流程走：过场 → 战斗 → 升级/掉落结算 → 过场 → 战斗 → 结局（Demo）。顶部下拉为**调试**入口，可直接载入任一关卡。
+1. 右侧「行动顺序」显示按**速度**排出的出手序列。
 2. 行动顺序按**速度初动（CT）**系统：速度越高出手越频繁（速度 80 的单位行动次数约为速度 40 的两倍）。同一时刻只有一个单位行动，轮到的我方单位会自动选中并显示**蓝色**可移动范围。
 3. 移动与技能**顺序自由**（可先移后攻，也可先攻后移）。移动为**暂定**：未确认前可「↩ 撤销移动」重选落点。
 4. 技能菜单不默认弹出（避免遮挡棋盘）——**移动后**或**点击该单位自身**时展开。
@@ -46,10 +51,14 @@ src/
     evaluator/          # 敌方评分器（扎堆/直线/危险地形惩罚）
     ai/                 # 敌人 AI（复用模拟器枚举+评分）
     content/            # 内容注册表、关卡加载
-  game-data/            # 数据驱动配置（JSON）：patterns/skills/units/levels
+  game-data/            # 数据驱动配置（JSON）：patterns/skills/units/levels + 养成/剧情数据
+  game-meta/            # 跨战斗纯逻辑：等级/技能解锁/装备/奖励/存档/剧情图
+  interaction/          # 引擎无关的玩家操作状态机（BattleSession → ViewModel/SessionHost）
+  campaign/             # 流程编排（CampaignDirector → 标题/过场/战斗/结算/结局）
   platform/
-    web/                # Web 表现层：Canvas 渲染 + 输入控制器
-    wechat/             # 微信小游戏构建配置与移植说明
+    pixi/               # 唯一表现层：PixiJS 2D 渲染 + 输入控制器（实现 SessionHost）
+    _shared/            # 共用 DOM HUD / 屏幕 / localStorage 存档
+    wechat/             # 微信小游戏移植说明（占位）
 tests/                  # vitest 测试
 ```
 
@@ -57,7 +66,7 @@ tests/                  # vitest 测试
 
 | PRD 要求 | 状态 |
 | --- | --- |
-| 1 个可运行战斗场景 | ✅ Web Canvas |
+| 1 个可运行战斗场景 | ✅ PixiJS 2D |
 | 3 个我方角色（风术士/火法师/枪兵） | ✅ |
 | 3 类敌人（近战/远程/重甲） | ✅ |
 | 3 个教学关卡 | ✅ 十字火焰 / 直线贯穿 / 陷阱位移 |
@@ -66,8 +75,7 @@ tests/                  # vitest 测试
 | 位移系统（撞墙/陷阱/火焰触发） | ✅ |
 | 预览系统（伤害/位移/落点/可击杀） | ✅ 释放前完整预览 |
 | 基础敌人 AI（不无脑扎堆） | ✅ 评分函数 + 扎堆/直线惩罚 |
-| Web 构建 | ✅ |
-| 微信小游戏构建 | ⚠ 配置与移植路径已就绪；HUD 需从 DOM 改为 Canvas 自绘（见 `platform/wechat/README.md`），核心逻辑零改动 |
+| PixiJS 构建 | ✅ |
 
 地形 MVP：普通地面 / 墙体 / 障碍物 / 火焰 / 陷阱（PRD §4.2）。
 
@@ -83,5 +91,5 @@ tests/                  # vitest 测试
 
 ## 后续（PRD §21）
 
-扇形/环形 Pattern、八方向旋转、更多位移机制、地形扩展、连招评分系统、Cocos 2.5D 表现层。
+扇形/环形 Pattern、八方向旋转、更多位移机制、地形扩展、连招评分系统、战斗中消耗品使用。
 当前架构已为这些扩展预留接口。
