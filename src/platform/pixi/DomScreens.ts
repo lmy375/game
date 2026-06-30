@@ -1,9 +1,9 @@
 /**
- * 共用 DOM 屏幕渲染器：把 campaign 的屏幕 ViewModel 渲染成 标题/过场/结算/结局 全屏覆盖层。
- * web / three / pixi 三套共用（cocos 非 DOM，用自己的节点屏幕）。镜像 DomHud 的形状。
- * 立绘用「圆盘 + 字形」纯 CSS 复现单位视觉语言，无图片资源。
+ * DOM 屏幕渲染器：把 campaign 的屏幕 ViewModel 渲染成 标题/过场/结算/结局 全屏覆盖层。镜像 DomHud 的形状。
+ * 立绘优先用 AssetManifest 的图片，缺图时回退「圆盘 + 字形」纯 CSS。
  */
 import { TitleVM, CutsceneVM, ResultVM, EndingVM, PortraitVM } from "../../campaign";
+import { portraitUrlFor } from "./AssetManifest";
 
 export interface ScreenHandlers {
   title(id: "new" | "continue"): void;
@@ -14,6 +14,8 @@ export interface ScreenHandlers {
 
 function portraitHtml(p: PortraitVM): string {
   const cls = p.role === "tank" ? "portrait-tank" : p.faction === "enemy" ? "portrait-enemy" : "portrait-player";
+  const url = portraitUrlFor(p.name) ?? portraitUrlFor(p.glyph);
+  if (url) return `<span class="portrait portrait-img ${cls}" style="background-image:url('${url}')"></span>`;
   return `<span class="portrait ${cls}">${p.glyph}</span>`;
 }
 

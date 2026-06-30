@@ -1,10 +1,10 @@
 /**
- * 共用 DOM HUD 渲染器：把交互层的 ViewModel 渲染成菜单/确认条/信息栏/回合提示/横幅。
- * web / three / pixi 三套表现层共用同一份 HUD，只有「菜单像素定位」因引擎而异，由 positionMenu 注入。
- * （Cocos 等非 DOM 表现层可不使用本模块，直接按 ViewModel 自行渲染。）
+ * DOM HUD 渲染器：把交互层的 ViewModel 渲染成菜单/确认条/信息栏/回合提示/横幅。
+ * 「菜单像素定位」因引擎而异，由 positionMenu 注入。
  */
 import { Position } from "@core/index";
 import { ViewModel } from "../../interaction";
+import { skillIconUrls } from "./AssetManifest";
 
 export interface HudEls {
   menu: HTMLElement;
@@ -72,7 +72,8 @@ export class DomHud {
       const btn = document.createElement("button");
       btn.className = "skill-btn";
       btn.disabled = s.disabled;
-      btn.innerHTML = `<b>${s.name}</b><small>${s.short}</small>`;
+      const icon = skillIconUrls[s.id as keyof typeof skillIconUrls] ?? skillIconUrls.normal_attack;
+      btn.innerHTML = `<span class="skill-icon" style="background-image:url('${icon}')"></span><span class="skill-copy"><b>${s.name}</b><small>${s.short}</small></span>`;
       btn.title = s.full;
       btn.onclick = () => this.handlers.selectSkill(s.id);
       menu.appendChild(btn);

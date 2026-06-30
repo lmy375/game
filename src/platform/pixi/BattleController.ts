@@ -7,7 +7,7 @@
  */
 import { BattleState, LevelDef, Position, BattleEvent, ContentRegistry } from "@core/index";
 import { BattleSession, SessionHost, ViewModel, ApplyOpts } from "../../interaction";
-import { DomHud } from "../_shared/DomHud";
+import { DomHud } from "./DomHud";
 import { Text } from "pixi.js";
 import { Grid } from "./Grid";
 import { GameStage } from "./GameStage";

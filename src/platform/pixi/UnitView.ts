@@ -1,6 +1,7 @@
-import { Container, Graphics, Text } from "pixi.js";
+import { Container, Graphics, Sprite, Text } from "pixi.js";
 import { BattleState, Unit, Direction, isAlive } from "@core/index";
 import { Grid } from "./Grid";
+import { unitSpriteUrls } from "./AssetManifest";
 
 const FACTION: Record<string, number> = { player: 0x4a90d9, enemy: 0xd9534f };
 const STATUS: Record<string, { ch: string; color: string }> = {
@@ -14,8 +15,8 @@ const STATUS: Record<string, { ch: string; color: string }> = {
 class UnitSprite {
   container = new Container();
   readonly maxHp: number;
-  private base: number;
-  private body = new Graphics();
+  private readonly factionColor: number;
+  private sprite: Sprite;
   private hp = new Graphics();
   private glow = new Graphics();
   private face = new Graphics();
@@ -23,8 +24,12 @@ class UnitSprite {
 
   constructor(unit: Unit, center: { x: number; y: number }) {
     this.maxHp = unit.maxHp;
-    this.base = FACTION[unit.faction] ?? FACTION.enemy;
+    this.factionColor = FACTION[unit.faction] ?? FACTION.enemy;
     this.container.position.set(center.x, center.y);
+    this.sprite = Sprite.from(unitSpriteUrls[unit.defId as keyof typeof unitSpriteUrls] ?? unitSpriteUrls.enemy_soldier);
+    this.sprite.anchor.set(0.5, 0.72);
+    this.sprite.width = 72;
+    this.sprite.height = 72;
 
     // 选中辉光(默认隐藏)
     this.glow.circle(0, 6, 30).fill({ color: 0xffe066, alpha: 0.5 });
@@ -35,29 +40,14 @@ class UnitSprite {
     const shadow = new Graphics();
     shadow.ellipse(0, 26, 20, 7).fill({ color: 0x000000, alpha: 0.4 });
 
-    const initial = new Text({
-      text: unit.name.slice(0, 1),
-      style: { fontSize: 22, fill: "#ffffff", fontWeight: "bold", stroke: { color: 0x11141b, width: 3 } },
-    });
-    initial.anchor.set(0.5);
-    initial.position.set(0, -2);
-
     this.statuses.anchor.set(0.5);
     this.statuses.position.set(0, -42);
 
-    this.container.addChild(this.glow, shadow, this.body, this.face, initial, this.hp, this.statuses);
+    this.container.addChild(this.glow, shadow, this.sprite, this.face, this.hp, this.statuses);
     this.redraw(unit);
   }
 
   redraw(unit: Unit): void {
-    this.body.clear();
-    // 躯干
-    this.body.roundRect(-20, -22, 40, 44, 11).fill(this.base);
-    this.body.roundRect(-20, -22, 40, 20, 11).fill({ color: 0xffffff, alpha: 0.12 });
-    this.body.roundRect(-20, -22, 40, 44, 11).stroke({ width: 2, color: 0x11141b });
-    // 头
-    this.body.circle(0, -26, 12).fill(this.base).stroke({ width: 2, color: 0x11141b });
-
     this.drawFacing(unit.facing);
     this.setHp(unit.hp);
 
@@ -78,7 +68,7 @@ class UnitSprite {
       down: [-4, 24, 0, 31, 4, 24],
     };
     const p = pts[dir] ?? pts.right;
-    g.poly(p).fill({ color: 0xffffff, alpha: 0.9 });
+    g.poly(p).fill({ color: this.factionColor, alpha: 0.95 }).stroke({ width: 1, color: 0x0b0d12 });
   }
 
   setHp(now: number): void {

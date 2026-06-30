@@ -1,6 +1,7 @@
-import { Container, Graphics } from "pixi.js";
+import { Container, Graphics, Sprite } from "pixi.js";
 import { BattleState, Position, TerrainType } from "@core/index";
 import { Grid } from "./Grid";
+import { terrainTextureUrls } from "./AssetManifest";
 
 const COLOR: Record<TerrainType, number> = {
   ground: 0x39404e,
@@ -36,7 +37,13 @@ export class BoardView {
     c.position.set(tx + inset, ty + inset);
 
     const g = new Graphics();
-    g.roundRect(0, 0, w, h, 10).fill(COLOR[terrain] ?? COLOR.ground);
+    g.roundRect(0, 0, w, h, 10).fill({ color: COLOR[terrain] ?? COLOR.ground, alpha: 0.34 });
+    const tex = terrainTextureUrls[terrain] ?? terrainTextureUrls.ground;
+    const sprite = Sprite.from(tex);
+    sprite.width = w;
+    sprite.height = h;
+    sprite.alpha = terrain === "ground" ? 0.82 : 0.94;
+    c.addChild(sprite);
     // 顶部高光 + 底部阴影,伪造体积感
     g.roundRect(0, 0, w, h * 0.42, 10).fill({ color: 0xffffff, alpha: 0.06 });
     if (terrain === "wall" || terrain === "obstacle") {

@@ -115,6 +115,8 @@ export class EventAnimator {
   private async terrain(p: Position, terrain: TerrainType): Promise<void> {
     const c = this.grid.center(p);
     const color = terrain === "fire" ? 0xff6a2a : terrain === "trap" ? 0x9a4ad9 : 0xffffff;
+    if (terrain === "fire") this.fx.spriteEffect("fire_burst", c.x, c.y, 108, 0.46);
+    if (terrain === "trap") this.fx.spriteEffect("trap", c.x, c.y, 112, 0.46);
     this.fx.burst(c.x, c.y, color, 12, 52);
     return this.anim.wait(0.12);
   }

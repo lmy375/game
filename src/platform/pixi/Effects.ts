@@ -1,6 +1,7 @@
-import { Container, Graphics, Text } from "pixi.js";
+import { Container, Graphics, Sprite, Text } from "pixi.js";
 import { Grid } from "./Grid";
 import { Animator, Easing } from "./Anim";
+import { effectTextureUrls } from "./AssetManifest";
 
 /** 程序化 2D 特效:加色粒子迸射 / 扩散光环 / 直线弹道 / 飘字 / 屏幕震动。 */
 export class Effects {
@@ -60,8 +61,11 @@ export class Effects {
   }
 
   projectile(from: { x: number; y: number }, to: { x: number; y: number }, color: number, onArrive?: () => void): void {
-    const g = new Graphics();
-    g.circle(0, 0, 6).fill(color);
+    const g = Sprite.from(effectTextureUrls.pierce_shot);
+    g.anchor.set(0.5);
+    g.width = 70;
+    g.height = 70;
+    g.rotation = Math.atan2(to.y - from.y, to.x - from.x);
     g.blendMode = "add";
     g.position.set(from.x, from.y);
     this.fx.addChild(g);
@@ -73,6 +77,28 @@ export class Effects {
         this.burst(to.x, to.y, color, 7, 28);
         onArrive?.();
       });
+  }
+
+  spriteEffect(key: keyof typeof effectTextureUrls, px: number, py: number, size = 96, life = 0.5): void {
+    const s = Sprite.from(effectTextureUrls[key]);
+    s.anchor.set(0.5);
+    s.blendMode = "add";
+    s.position.set(px, py);
+    s.width = size;
+    s.height = size;
+    this.fx.addChild(s);
+    void this.anim
+      .animate(
+        life,
+        (t) => {
+          const k = t < 0.18 ? t / 0.18 : 1;
+          s.alpha = k * (1 - Math.max(0, t - 0.32) / 0.68);
+          s.scale.set(0.72 + t * 0.48);
+          s.rotation += 0.015;
+        },
+        Easing.quadOut
+      )
+      .then(() => s.destroy());
   }
 
   float(px: number, py: number, text: string, color: string): void {
@@ -98,12 +124,14 @@ export class Effects {
   cast(skillId: string, fromCell: { x: number; y: number }, toCell: { x: number; y: number } | null): void {
     const from = this.pt(fromCell.x, fromCell.y);
     const to = toCell ? this.pt(toCell.x, toCell.y) : from;
-    if (/gale|gather|wind|聚/.test(skillId)) this.ring(to.x, to.y, 0x8fe3ff, 70);
+    if (/gale|gather|wind|聚/.test(skillId)) this.spriteEffect("gale_gather", to.x, to.y, 118);
+    else if (/swap/.test(skillId)) this.spriteEffect("swap_skill", to.x, to.y, 112);
     else if (/pierce|line|shoot|spear|贯穿|射/.test(skillId)) this.projectile(from, to, 0xffe08a);
     else if (/fire|cross|burn|火/.test(skillId)) {
-      this.ring(from.x, from.y, 0xff8a3a, 40, 0.3);
+      this.spriteEffect("cross_fire", from.x, from.y, 92, 0.35);
+      this.spriteEffect("fire_burst", to.x, to.y, 118, 0.55);
       this.burst(to.x, to.y, 0xff6a2a, 16, 60);
-    } else if (/push|wave|knock|推/.test(skillId)) this.ring(from.x, from.y, 0xcfe0ff, 56);
-    else this.ring(from.x, from.y, 0xffffff, 34, 0.25);
+    } else if (/push|wave|knock|推/.test(skillId)) this.spriteEffect("push_wave", from.x, from.y, 118);
+    else this.spriteEffect("slash", to.x, to.y, 86, 0.32);
   }
 }

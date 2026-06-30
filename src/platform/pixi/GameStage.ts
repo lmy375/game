@@ -1,4 +1,5 @@
-import { Application, Container } from "pixi.js";
+import { Application, Container, Sprite } from "pixi.js";
+import { battleBackgroundUrl } from "./AssetManifest";
 
 /**
  * Pixi 舞台:一个 Application + 分层容器(都挂在 world 下,便于整体做屏幕震动)。
@@ -6,6 +7,7 @@ import { Application, Container } from "pixi.js";
  */
 export class GameStage {
   readonly app = new Application();
+  readonly background = Sprite.from(battleBackgroundUrl);
   readonly world = new Container();
   readonly board = new Container();
   readonly overlay = new Container();
@@ -22,8 +24,9 @@ export class GameStage {
       autoDensity: true,
     });
     host.appendChild(this.app.canvas);
+    this.background.alpha = 0.72;
+    this.app.stage.addChild(this.background, this.world);
     this.world.addChild(this.board, this.overlay, this.units, this.fx);
-    this.app.stage.addChild(this.world);
   }
 
   get canvas(): HTMLCanvasElement {
@@ -32,6 +35,10 @@ export class GameStage {
 
   resize(w: number, h: number): void {
     this.app.renderer.resize(w, h);
+    const tex = this.background.texture;
+    const scale = Math.max(w / tex.width, h / tex.height);
+    this.background.scale.set(scale);
+    this.background.position.set((w - tex.width * scale) / 2, (h - tex.height * scale) / 2);
   }
 
   /** 清空一关的所有内容。 */

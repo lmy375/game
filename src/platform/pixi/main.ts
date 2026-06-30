@@ -4,15 +4,18 @@
  */
 import { createRegistry, levels, getLevel } from "@data/index";
 import { loadMetaTables, initialSaveData } from "@data/metaIndex";
+import { Assets } from "pixi.js";
 import { CampaignDirector, CampaignHost } from "../../campaign";
 import { GameStage } from "./GameStage";
 import { BattleController, ControllerEls } from "./BattleController";
-import { DomScreens } from "../_shared/DomScreens";
-import { LocalSaveStore } from "../_shared/LocalSaveStore";
+import { DomScreens } from "./DomScreens";
+import { LocalSaveStore } from "./LocalSaveStore";
+import { allBattleAssetUrls } from "./AssetManifest";
 
 async function main(): Promise<void> {
   const registry = createRegistry();
   const tables = loadMetaTables();
+  await Assets.load(allBattleAssetUrls);
   const stage = new GameStage();
   await stage.init(document.getElementById("stage")!);
 
