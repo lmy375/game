@@ -75,7 +75,11 @@ export class EventAnimator {
       const b = this.grid.center(path[i]);
       await this.anim.animate(
         0.14,
-        (t) => s.container.position.set(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t - Math.sin(t * Math.PI) * 7),
+        (t) => {
+          const y = a.y + (b.y - a.y) * t;
+          s.container.position.set(a.x + (b.x - a.x) * t, y - Math.sin(t * Math.PI) * 7);
+          s.container.zIndex = y;
+        },
         Easing.smooth
       );
     }

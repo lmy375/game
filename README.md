@@ -19,7 +19,7 @@ pnpm typecheck    # 严格模式类型检查
 pnpm build        # 生产构建（PixiJS 运行时，~108KB gzip）
 ```
 
-> 表现层只保留 **PixiJS**（web Canvas / Three.js 2.5D / Cocos 已下线）。
+> 表现层只保留 **PixiJS**（旧 Web Canvas / Three.js 2.5D 表现层已下线）。
 > `game-core`/`interaction`/`game-meta`/`campaign` 为引擎无关纯逻辑，若要新增表现层只需实现 `SessionHost` 与 `CampaignHost`。
 
 ## 怎么玩

@@ -1,5 +1,5 @@
 /**
- * game-core 对外统一出口。表现层（Web/Cocos）与测试只从这里引入。
+ * game-core 对外统一出口。表现层与测试只从这里引入。
  * 该层不依赖任何引擎与具体数据文件。
  */
 export * from "./board/geometry";

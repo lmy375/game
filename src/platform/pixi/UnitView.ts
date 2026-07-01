@@ -36,9 +36,9 @@ class UnitSprite {
     this.glow.blendMode = "add";
     this.glow.visible = false;
 
-    // 阴影
+    // 阴影(贴合等距菱形,压扁加宽)
     const shadow = new Graphics();
-    shadow.ellipse(0, 26, 20, 7).fill({ color: 0x000000, alpha: 0.4 });
+    shadow.ellipse(0, 20, 28, 11).fill({ color: 0x000000, alpha: 0.42 });
 
     this.statuses.anchor.set(0.5);
     this.statuses.position.set(0, -42);
@@ -120,6 +120,8 @@ export class UnitView {
         s.container.position.set(c.x, c.y);
         s.redraw(u);
       }
+      s.container.zIndex = c.y; // 靠前(下方)的单位盖住靠后的
+
     }
     for (const [id, s] of [...this.map]) {
       if (!seen.has(id)) {

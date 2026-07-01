@@ -13,7 +13,7 @@ export class Effects {
   ) {}
 
   private pt(cellX: number, cellY: number): { x: number; y: number } {
-    return { x: this.grid.cx(cellX), y: this.grid.cy(cellY) };
+    return this.grid.center({ x: cellX, y: cellY });
   }
 
   burst(px: number, py: number, color: number, count = 12, radius = 46): void {

@@ -102,9 +102,10 @@ export class BattleController implements SessionHost {
 
   // ---------- SessionHost 实现 ----------
   setupLevel(level: LevelDef, state: BattleState): void {
-    this.grid = new Grid(level.board.width, level.board.height, 72);
+    this.grid = new Grid(level.board.width, level.board.height);
     this.stage.resize(this.grid.pxWidth, this.grid.pxHeight);
     this.stage.world.position.set(0, 0);
+    this.stage.units.sortableChildren = true; // 等距下按深度排序单位遮挡
     this.stage.clear();
 
     this.board = new BoardView();

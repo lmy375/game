@@ -8,16 +8,16 @@ interface Style {
   alpha: number;
 }
 const HL: Record<string, Style> = {
-  move: { color: 0x4a90d9, alpha: 0.3 },
-  cast: { color: 0xe8c840, alpha: 0.2 },
-  hazard: { color: 0xff5030, alpha: 0.38 },
-  hitArm: { color: 0xe8843f, alpha: 0.42 },
-  hitCenter: { color: 0xe8503f, alpha: 0.55 },
-  origin: { color: 0x9fb4d0, alpha: 0.28 },
-  hover: { color: 0xffffff, alpha: 0.12 },
+  move: { color: 0x4a90d9, alpha: 0.32 },
+  cast: { color: 0xe8c840, alpha: 0.24 },
+  hazard: { color: 0xff5030, alpha: 0.4 },
+  hitArm: { color: 0xe8843f, alpha: 0.44 },
+  hitCenter: { color: 0xe8503f, alpha: 0.58 },
+  origin: { color: 0x9fb4d0, alpha: 0.3 },
+  hover: { color: 0xffffff, alpha: 0.16 },
 };
 
-/** 贴格高亮 + 落点虚框 + 位移箭头。每次刷新整体重建。 */
+/** 贴合等距菱形的高亮 + 落点虚框 + 位移箭头。每次刷新整体重建。 */
 export class OverlayView {
   private layer!: Container;
   private grid!: Grid;
@@ -44,25 +44,30 @@ export class OverlayView {
     this.layer.removeChildren().forEach((c) => c.destroy());
   }
 
+  /** 菱形顶面顶点(略微内缩),相对格中心。 */
+  private diamond(inset = 0.86): number[] {
+    const hw = this.grid.halfW * inset;
+    const hh = this.grid.halfH * inset;
+    return [0, -hh, hw, 0, 0, hh, -hw, 0];
+  }
+
   private cells(cells: Position[] | undefined, s: Style): void {
     if (!cells) return;
-    const cell = this.grid.cell;
+    const pts = this.diamond();
     const g = new Graphics();
     for (const p of cells) {
-      const tx = p.x * cell + 4;
-      const ty = (this.grid.height - 1 - p.y) * cell + 4;
-      g.roundRect(tx, ty, cell - 8, cell - 8, 8);
+      const c = this.grid.center(p);
+      g.poly(pts.map((v, i) => (i % 2 === 0 ? v + c.x : v + c.y)));
     }
     g.fill({ color: s.color, alpha: s.alpha });
     this.layer.addChild(g);
   }
 
   private box(p: Position): void {
-    const cell = this.grid.cell;
-    const tx = p.x * cell + 4;
-    const ty = (this.grid.height - 1 - p.y) * cell + 4;
+    const c = this.grid.center(p);
+    const pts = this.diamond();
     const g = new Graphics();
-    g.roundRect(tx, ty, cell - 8, cell - 8, 8).stroke({ width: 2, color: 0xffffff, alpha: 0.8 });
+    g.poly(pts.map((v, i) => (i % 2 === 0 ? v + c.x : v + c.y))).stroke({ width: 2, color: 0xffffff, alpha: 0.8 });
     this.layer.addChild(g);
   }
 

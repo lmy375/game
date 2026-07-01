@@ -35,7 +35,7 @@
 
 客户端：
 
-* Cocos Creator 3.x
+* PixiJS
 * TypeScript
 * 2D / 2.5D 棋盘表现
 * Web + 微信小游戏双端发布
@@ -43,8 +43,8 @@
 架构原则：
 
 * 战斗核心逻辑使用纯 TypeScript 实现
-* Cocos 只负责表现层、输入、动画、音效、UI
-* 核心逻辑不依赖 Cocos 节点、生命周期和渲染 API
+* PixiJS 只负责表现层、输入、动画、音效、UI
+* 核心逻辑不依赖具体渲染引擎的节点、生命周期和渲染 API
 * 所有技能、角色、关卡、地形尽量数据驱动
 
 推荐代码结构：
@@ -67,15 +67,8 @@ src/
     skills.json
     patterns.json
     levels.json
-  cocos-client/
-    scenes/
-    views/
-    controllers/
-    ui/
-    animation/
-    audio/
   platform/
-    web/
+    pixi/
     wechat/
 ```
 
@@ -1243,7 +1236,7 @@ type BattleEvent =
   | { type: "terrain_triggered"; position: Position; terrainType: string };
 ```
 
-Cocos 表现层根据事件播放动画。
+表现层根据事件播放动画。
 
 ---
 
@@ -1548,7 +1541,7 @@ MVP 使用轻量美术
 
 ```text
 AI 一次性生成过多耦合代码
-核心逻辑和 Cocos 表现层混在一起
+核心逻辑和表现层混在一起
 ```
 
 对策：
@@ -1557,7 +1550,7 @@ AI 一次性生成过多耦合代码
 所有核心逻辑放入 game-core
 每次只让 AI 实现小模块
 为核心模块写单元测试
-模拟器不依赖 Cocos
+模拟器不依赖具体渲染引擎
 表现层只消费 BattleEvent
 ```
 
@@ -1759,12 +1752,12 @@ Web 构建
 下一步应完成：
 
 ```text
-1. 建立 Cocos Creator 项目
+1. 建立 PixiJS 表现层项目
 2. 建立 game-core 纯 TS 目录
 3. 实现 GridBoard / Position / Direction
 4. 实现 Pattern 数据结构与旋转
 5. 实现十字火焰的命中预览
-6. 在 Cocos 场景中显示 8x8 棋盘和 AOE 高亮
+6. 在 PixiJS 场景中显示 8x8 棋盘和 AOE 高亮
 ```
 
 第一个可运行 Demo 的目标：

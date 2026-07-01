@@ -1,6 +1,6 @@
 /**
  * 交互层公共类型：ViewModel（纯数据，给任意表现层渲染）与 SessionHost（表现层需实现的钩子）。
- * 该层零引擎依赖：只认识 game-core 的状态/事件，不认识 DOM、Canvas、Pixi、Three、Cocos。
+ * 该层零引擎依赖：只认识 game-core 的状态/事件，不认识 DOM、Canvas、Pixi 或其它渲染实现。
  */
 import { BattleState, Position, BattleEvent, LevelDef } from "@core/index";
 
