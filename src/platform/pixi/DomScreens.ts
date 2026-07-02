@@ -25,11 +25,14 @@ export class DomScreens {
   private open(inner: string): void {
     this.root.innerHTML = `<div class="screen">${inner}</div>`;
     this.root.classList.add("active");
+    // 全屏剧情/结算屏幕期间隐藏战斗 HUD 骨架（顶栏/教学条/侧栏/底注），避免在没有战斗时露出。
+    document.body.classList.add("screen-active");
   }
 
   hide(): void {
     this.root.classList.remove("active");
     this.root.innerHTML = "";
+    document.body.classList.remove("screen-active");
   }
 
   showTitle(vm: TitleVM): void {

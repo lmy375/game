@@ -5,6 +5,9 @@
   "description": "阵形之术 — 回合制战棋策略游戏 (MVP)",
   "type": "module",
   "packageManager": "pnpm@10.13.1",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

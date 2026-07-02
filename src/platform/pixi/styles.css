@@ -16,7 +16,7 @@ body {
   -webkit-user-select: none;
   user-select: none;
 }
-#app { max-width: 1100px; margin: 0 auto; padding: 12px; display: flex; flex-direction: column; min-height: 100%; }
+#app { max-width: 1180px; margin: 0 auto; padding: 12px; display: flex; flex-direction: column; min-height: 100%; }
 
 header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 h1 { font-size: 20px; font-weight: 700; }
@@ -36,11 +36,11 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   border-left: 3px solid var(--accent); border-radius: 6px; font-size: 13px; color: #d4d9e6;
 }
 
-main { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
-.board-wrap { position: relative; flex: 0 0 auto; }
+main { display: flex; gap: 14px; align-items: flex-start; flex-wrap: nowrap; }
+.board-wrap { position: relative; flex: 1 1 auto; min-width: 0; max-width: 100%; }
 canvas { background: #0c0e13; border-radius: 10px; display: block; touch-action: none; }
 
-.side { flex: 1 1 280px; min-width: 260px; display: flex; flex-direction: column; gap: 12px; }
+.side { flex: 0 0 300px; min-width: 280px; display: flex; flex-direction: column; gap: 12px; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 .panel.grow { flex: 1; }
 .panel h2 { font-size: 13px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
@@ -85,6 +85,11 @@ canvas { background: #0c0e13; border-radius: 10px; display: block; touch-action:
   background: rgba(20,24,34,.96); border: 1px solid var(--accent);
   border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.5);
 }
+.action-panel { display: none; }
+.action-panel .unit-menu {
+  position: static; width: 100%; padding: 0; z-index: auto;
+  background: transparent; border: 0; border-radius: 0; box-shadow: none;
+}
 .unit-menu .menu-title { font-size: 12px; color: var(--accent); font-weight: 700; padding: 0 2px 2px; }
 .unit-menu .menu-secondary { font-size: 12px; padding: 6px 8px; text-align: center; }
 .unit-menu .menu-secondary:hover:not(:disabled) { border-color: var(--accent); }
@@ -112,10 +117,11 @@ canvas { background: #0c0e13; border-radius: 10px; display: block; touch-action:
 
 footer { margin-top: 12px; color: var(--muted); font-size: 11px; text-align: center; }
 
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   h1 { font-size: 16px; }
   main { flex-direction: column; }
   .board-wrap { width: 100%; }
+  .side { width: 100%; min-width: 0; flex-basis: auto; }
   canvas { width: 100%; height: auto; }
 }
 
@@ -125,6 +131,11 @@ footer { margin-top: 12px; color: var(--muted); font-size: 11px; text-align: cen
   align-items: center; justify-content: center; background: rgba(8, 10, 15, .92);
 }
 .screen-root.active { display: flex; }
+/* 剧情/结算/结局屏幕期间：隐藏战斗 HUD 骨架，仅保留棋盘作背景。visibility 保留占位以免棋盘位移。 */
+body.screen-active header,
+body.screen-active .hint,
+body.screen-active .side,
+body.screen-active footer { visibility: hidden; }
 .screen {
   text-align: center; max-width: 560px; width: calc(100% - 48px);
   padding: 28px 32px; background: rgba(20, 24, 34, .97);
@@ -163,7 +174,7 @@ footer { margin-top: 12px; color: var(--muted); font-size: 11px; text-align: cen
 
 /* Pixi 自建 canvas 挂到 #stage 里 */
 #stage { line-height: 0; border-radius: 10px; overflow: hidden; }
-#stage canvas { display: block; border-radius: 10px; touch-action: none; cursor: pointer; }
+#stage canvas { display: block; max-width: 100%; height: auto; border-radius: 10px; touch-action: none; cursor: pointer; }
 
 /* 菜单/确认条/横幅定位在 board-wrap 内,沿用 web 样式 */
 #board-wrap { position: relative; }

@@ -6,9 +6,13 @@ import { Overlay } from "./types";
 interface Style {
   color: number;
   alpha: number;
+  /** 可选的每格描边，用于在同色地形上拉开对比（如蓝色地砖上的移动范围）。 */
+  edge?: number;
+  edgeAlpha?: number;
 }
 const HL: Record<string, Style> = {
-  move: { color: 0x4a90d9, alpha: 0.32 },
+  // 移动范围叠在偏蓝的地砖上，用更亮的天蓝 + 亮边描边保证可读性。
+  move: { color: 0x6cc4ff, alpha: 0.42, edge: 0xd4efff, edgeAlpha: 0.7 },
   cast: { color: 0xe8c840, alpha: 0.24 },
   hazard: { color: 0xff5030, alpha: 0.4 },
   hitArm: { color: 0xe8843f, alpha: 0.44 },
@@ -60,6 +64,7 @@ export class OverlayView {
       g.poly(pts.map((v, i) => (i % 2 === 0 ? v + c.x : v + c.y)));
     }
     g.fill({ color: s.color, alpha: s.alpha });
+    if (s.edge !== undefined) g.stroke({ width: 1, color: s.edge, alpha: s.edgeAlpha ?? 0.6 });
     this.layer.addChild(g);
   }
 

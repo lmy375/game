@@ -47,6 +47,13 @@ describe("交互状态机冒烟（BattleSession，引擎无关）", () => {
     expect(host.vm.menu.skills.some((s) => s.name === "狂风聚拢")).toBe(true);
   });
 
+  it("技能菜单使用明确短文案，不截断百分比数值", () => {
+    session.tapCell({ x: 1, y: 2 });
+    const normal = host.vm.menu.skills.find((s) => s.id === "normal_attack");
+    expect(normal?.short).toContain("100%");
+    expect(normal?.short).not.toBe("对相邻的一个敌人造成 1");
+  });
+
   it("移动后技能菜单自动展开，且单位移动到落点", () => {
     expect(host.vm.menu.visible).toBe(false);
     session.tapCell({ x: 2, y: 2 }); // 直接移动
@@ -62,6 +69,15 @@ describe("交互状态机冒烟（BattleSession，引擎无关）", () => {
     expect(host.vm.confirm.visible).toBe(true);
     expect(host.vm.confirm.canRelease).toBe(false);
     expect(host.vm.confirm.desc).toContain("无法释放");
+  });
+
+  it("瞄准施法范围外时提示「超出施法范围」，与空放区分", () => {
+    session.tapCell({ x: 1, y: 2 });
+    session.selectSkill("gale_gather"); // 距离 1-4
+    session.tapCell({ x: 6, y: 4 }); // 距 (1,2) 超过 4 格
+    expect(host.vm.confirm.visible).toBe(true);
+    expect(host.vm.confirm.canRelease).toBe(false);
+    expect(host.vm.confirm.desc).toBe("超出施法范围");
   });
 
   it("移动可撤销后回到起点", () => {

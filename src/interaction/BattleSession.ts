@@ -18,6 +18,7 @@ import {
   EnemyAI,
   ContentRegistry,
   LevelDef,
+  SkillDef,
   loadLevel,
   cloneState,
   activeUnit,
@@ -499,7 +500,7 @@ export class BattleSession {
       return {
         id: skillId,
         name: skill.name,
-        short: cd > 0 ? `冷却 ${cd}` : skill.description.slice(0, 12),
+        short: cd > 0 ? `冷却 ${cd}` : skill.shortDescription ?? this.compactSkillDescription(skill.description),
         full: skill.description,
         cooldown: cd,
         disabled: active.actedThisTurn || cd > 0,
@@ -514,6 +515,10 @@ export class BattleSession {
     };
   }
 
+  private compactSkillDescription(text: string): string {
+    return text.length > 16 ? `${text.slice(0, 15)}…` : text;
+  }
+
   private buildConfirm(active: Unit | undefined, myTurn: boolean): ConfirmVM {
     if (!(myTurn && active && this.activeSkill && this.pending)) {
       return { visible: false, skillName: "", desc: "", canRelease: false };
@@ -521,14 +526,23 @@ export class BattleSession {
     const skill = this.registry.skill(this.activeSkill);
     const can = canCast(this.state, active, skill, this.pending);
     let effect = false;
-    let desc = "无效目标";
+    let desc: string;
     if (can) {
       const preview = previewSkill(this.state, this.sim, this.registry, active.instanceId, this.activeSkill, this.pending);
       effect = this.hasEffect(preview.events);
       const lines = describePreview(this.state, preview.events).filter((l) => !l.includes("施放"));
       desc = effect ? lines.join("　·　") : "未命中有效目标，无法释放";
+    } else {
+      desc = this.pendingOutOfRange(active, skill) ? "超出施法范围" : "无法在此处施放";
     }
     return { visible: true, skillName: skill.name, desc, canRelease: can && effect };
+  }
+
+  /** pending 的目标格是否落在施法范围之外（方向类技能无格子目标，返回 false）。 */
+  private pendingOutOfRange(active: Unit, skill: SkillDef): boolean {
+    const cell = this.pending?.cell;
+    if (!cell) return false;
+    return !getCastableCells(this.state, active, skill).some((c) => eq(c, cell));
   }
 
   private buildTurnText(): string {

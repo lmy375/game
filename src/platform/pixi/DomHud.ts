@@ -57,11 +57,14 @@ export class DomHud {
 
   private renderMenu(vm: ViewModel): void {
     const menu = this.els.menu;
+    const panel = menu.closest<HTMLElement>(".action-panel");
     if (!vm.menu.visible) {
       menu.style.display = "none";
       menu.innerHTML = "";
+      if (panel) panel.style.display = "none";
       return;
     }
+    if (panel) panel.style.display = "block";
     menu.innerHTML = "";
     const title = document.createElement("div");
     title.className = "menu-title";

@@ -9,7 +9,7 @@
 
 ## 快速开始
 
-本项目使用 **pnpm** 管理依赖。
+本项目使用 **pnpm** 管理依赖，需要 **Node ≥ 18**（Vite 5 要求；Node 16 会在 `pnpm dev` 时报 `crypto.getRandomValues is not a function`）。仓库已附 `.nvmrc`，可用 `nvm use` 切到匹配版本。
 
 ```bash
 pnpm install

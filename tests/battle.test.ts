@@ -95,6 +95,55 @@ describe("狂风聚拢：为 AOE 创造阵型", () => {
     expect(md(n1.pos)).toBeLessThan(md(e1.pos)); // 更靠近中心
     expect(md(n2.pos)).toBeLessThan(md(e2.pos));
   });
+
+  it("第一关教学连招：移动后聚拢，火法师移动后十字火焰可命中所有敌人", () => {
+    let state = loadLevel(getLevel("level_001"), registry);
+    const sim = new BattleSimulator(registry);
+    const wind = unitById(state, state.activeUnitId!)!;
+
+    let res = sim.simulate(state, { type: "move", actorId: wind.instanceId, moveTo: { x: 3, y: 3 } });
+    expect(res.ok).toBe(true);
+    state = res.nextState;
+
+    res = sim.simulate(state, {
+      type: "skill",
+      actorId: wind.instanceId,
+      skillId: "gale_gather",
+      targetCell: { x: 6, y: 4 },
+    });
+    expect(res.ok).toBe(true);
+    expect(res.events.some((e) => e.type === "unit_displaced")).toBe(true);
+    state = res.nextState;
+
+    const fire = state.units.find((u) => u.defId === "fire_mage")!;
+    state.activeUnitId = fire.instanceId;
+    state.turn = "player";
+    fire.movedThisTurn = false;
+    fire.actedThisTurn = false;
+
+    res = sim.simulate(state, { type: "move", actorId: fire.instanceId, moveTo: { x: 3, y: 4 } });
+    expect(res.ok).toBe(true);
+    state = res.nextState;
+
+    res = sim.simulate(state, {
+      type: "skill",
+      actorId: fire.instanceId,
+      skillId: "cross_fire",
+      targetCell: { x: 6, y: 4 },
+    });
+    expect(res.ok).toBe(true);
+    const enemies = res.nextState.units.filter((u) => u.faction === "enemy");
+    expect(enemies.every((e) => e.hp < e.maxHp)).toBe(true);
+  });
+});
+
+describe("教学关卡先手", () => {
+  it("第二关调试载入时玩家先行动，避免教学开始前先挨打", () => {
+    const state = loadLevel(getLevel("level_002"), registry);
+    const active = unitById(state, state.activeUnitId!)!;
+    expect(active.faction).toBe("player");
+    expect(active.defId).toBe("wind_mage");
+  });
 });
 
 describe("推入危险地形", () => {

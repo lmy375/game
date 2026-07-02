@@ -40,6 +40,7 @@ export interface SkillDef {
   id: string;
   name: string;
   description: string;
+  shortDescription?: string;
   castRange: CastRange;
   patternId: string;
   targetType: TargetType;

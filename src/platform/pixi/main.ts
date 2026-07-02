@@ -56,17 +56,22 @@ async function main(): Promise<void> {
     levelOf: getLevel,
   });
 
-  const select = document.getElementById("level-select") as HTMLSelectElement;
-  for (const lvl of levels) {
-    const opt = document.createElement("option");
-    opt.value = lvl.id;
-    opt.textContent = lvl.name;
-    select.appendChild(opt);
+  // 关卡下拉是调试工具：默认隐藏，直接跳关会绕过战役流程。加 ?debug 显示。
+  const debugMode = new URLSearchParams(location.search).has("debug");
+  if (debugMode) {
+    document.getElementById("level-select-wrap")?.removeAttribute("hidden");
+    const select = document.getElementById("level-select") as HTMLSelectElement;
+    for (const lvl of levels) {
+      const opt = document.createElement("option");
+      opt.value = lvl.id;
+      opt.textContent = lvl.name;
+      select.appendChild(opt);
+    }
+    select.addEventListener("change", () => {
+      screens.hide();
+      controller.load(getLevel(select.value));
+    });
   }
-  select.addEventListener("change", () => {
-    screens.hide();
-    controller.load(getLevel(select.value));
-  });
   document.getElementById("end-turn")!.addEventListener("click", () => controller.endActiveUnit());
 
   director.boot();
