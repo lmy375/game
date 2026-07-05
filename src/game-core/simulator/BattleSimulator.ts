@@ -9,7 +9,7 @@ import { BattleEvent } from "../state/events";
 import { ContentRegistry } from "../content/Registry";
 import { findPath, computeMoveRange } from "../pathfinding/pathfinding";
 import { canCast, resolveSkillEffects, SkillTarget } from "../skill/resolveSkill";
-import { triggerTerrain, processDeaths } from "../skill/combat";
+import { triggerTerrain, processDeaths, applyItemEffect, ItemEffect } from "../skill/combat";
 import { advanceInitiative } from "../turn/turn";
 
 export type BattleAction =
@@ -22,6 +22,7 @@ export type BattleAction =
       targetUnitId?: string;
       direction?: Direction;
     }
+  | { type: "use_item"; actorId: string; targetUnitId: string; itemId: string; effect: ItemEffect }
   | { type: "wait"; actorId: string }
   | { type: "end_turn" };
 
@@ -60,6 +61,8 @@ export class BattleSimulator {
         return this.doMove(next, events, actor.instanceId, action.moveTo);
       case "skill":
         return this.doSkill(next, events, actor.instanceId, action);
+      case "use_item":
+        return this.doUseItem(next, events, actor.instanceId, action);
       case "wait": {
         actor.movedThisTurn = true;
         actor.actedThisTurn = true;
@@ -118,6 +121,26 @@ export class BattleSimulator {
     resolveSkillEffects(state, actor, skill, this.registry, target, events);
     actor.actedThisTurn = true;
     actor.cooldowns[skill.id] = skill.cooldown;
+
+    this.finalize(state, events);
+    return { nextState: state, events, ok: true };
+  }
+
+  /** 使用消耗品：占用「技能行动」（actedThisTurn），仍可移动。射程校验由交互层负责，core 只认 target。 */
+  private doUseItem(
+    state: BattleState,
+    events: BattleEvent[],
+    actorId: string,
+    action: Extract<BattleAction, { type: "use_item" }>
+  ): BattleResult {
+    const actor = unitById(state, actorId)!;
+    if (actor.actedThisTurn) return { nextState: state, events, ok: false, error: "本回合已行动" };
+    const target = unitById(state, action.targetUnitId);
+    if (!target || !isAlive(target)) return { nextState: state, events, ok: false, error: "无效目标" };
+
+    events.push({ type: "item_used", userId: actorId, itemId: action.itemId, targetUnitId: target.instanceId });
+    applyItemEffect(state, target, action.effect, events);
+    actor.actedThisTurn = true;
 
     this.finalize(state, events);
     return { nextState: state, events, ok: true };

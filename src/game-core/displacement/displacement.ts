@@ -117,9 +117,12 @@ function pullTowards(
     moved++;
   }
 
+  // 聚拢时，已经紧贴中心（正交相邻）的单位无需移动即已在十字位上，
+  // 不应报「被阻挡」——那会让玩家误以为聚拢失败。
+  const alreadyInPlace = reason === "gather" && manhattan(from, point) === 1;
   if (moved > 0) {
     events.push({ type: "unit_displaced", unitId: unit.instanceId, from, to: clone(unit.pos), reason });
-  } else if (blocked) {
+  } else if (blocked && !alreadyInPlace) {
     events.push({ type: "displacement_blocked", unitId: unit.instanceId, at: clone(unit.pos), reason: blocked });
   }
   return { moved, finalPos: clone(unit.pos), blocked };

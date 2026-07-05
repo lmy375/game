@@ -18,6 +18,7 @@ export interface HudEls {
 
 export interface HudHandlers {
   selectSkill(skillId: string): void;
+  selectItem(itemId: string): void;
   undoMove(): void;
   endTurn(): void;
   confirm(): void;
@@ -82,6 +83,23 @@ export class DomHud {
       menu.appendChild(btn);
     }
 
+    // 道具区：消耗品占技能行动，随技能菜单一起显示。
+    if (vm.items.visible && vm.items.items.length > 0) {
+      const sep = document.createElement("div");
+      sep.className = "menu-subtitle";
+      sep.textContent = "道具";
+      menu.appendChild(sep);
+      for (const it of vm.items.items) {
+        const btn = document.createElement("button");
+        btn.className = "skill-btn item-btn";
+        btn.disabled = it.disabled;
+        btn.innerHTML = `<span class="skill-icon item-icon">🧪</span><span class="skill-copy"><b>${it.name}</b><small>${it.short}</small></span>`;
+        btn.title = it.full;
+        btn.onclick = () => this.handlers.selectItem(it.itemId);
+        menu.appendChild(btn);
+      }
+    }
+
     if (vm.menu.showUndo) {
       const undo = document.createElement("button");
       undo.className = "menu-secondary";
@@ -104,6 +122,7 @@ export class DomHud {
     const bar = this.els.confirmBar;
     if (!vm.confirm.visible) {
       bar.style.display = "none";
+      bar.replaceChildren();
       return;
     }
     bar.style.display = "flex";
@@ -131,7 +150,7 @@ export class DomHud {
 
     const row = (u: ViewModel["info"]["players"][number]) =>
       `<div class="unit-row ${u.faction} ${u.dead ? "dead" : ""} ${u.selected ? "sel" : ""}">` +
-      `<span class="dot"></span>${u.name} <span class="spd">速${u.speed}</span> ` +
+      `<span class="dot"></span>${u.name} <span class="lv">Lv${u.level}</span> <span class="spd">速${u.speed}</span> ` +
       `<span class="hp">${u.hp}/${u.maxHp}</span></div>`;
     const players = vm.info.players.map(row).join("");
     const enemies = vm.info.enemies.map(row).join("");

@@ -12,6 +12,7 @@ export type BattleEvent =
   | { type: "skill_cast"; casterId: string; skillId: string; targetCell?: Position }
   | { type: "unit_damaged"; unitId: string; amount: number; hpAfter: number; source: string }
   | { type: "unit_healed"; unitId: string; amount: number; hpAfter: number }
+  | { type: "item_used"; userId: string; itemId: string; targetUnitId: string }
   | {
       type: "unit_displaced";
       unitId: string;
@@ -25,7 +26,8 @@ export type BattleEvent =
   | { type: "unit_status_expired"; unitId: string; statusId: StatusId }
   | { type: "terrain_triggered"; position: Position; terrainType: TerrainType; unitId: string }
   | { type: "obstacle_destroyed"; position: Position }
-  | { type: "unit_died"; unitId: string }
+  | { type: "unit_died"; unitId: string; killerId?: string }
+  | { type: "unit_level_up"; unitId: string; fromLevel: number; toLevel: number; unlockedSkills: string[] }
   | { type: "turn_started"; faction: Faction; turnCount: number; unitId?: string }
   | { type: "turn_ended"; faction: Faction }
   | { type: "battle_ended"; outcome: "player_win" | "enemy_win" };

@@ -52,6 +52,8 @@ export interface SkillDef {
    * 注意：arrange_line / pull_to_center 这类「整体位移」放在 "all" 下，按一次整体结算。
    */
   cellEffects: Record<string, EffectOp[]>;
+  /** 技能每级对伤害/治疗倍率的加成（如 0.1 = 每级 +10%）。缺省=0，不随等级变强。 */
+  powerPerLevel?: number;
   /** AI 评分倾向提示（可选）。 */
   aiHint?: "attack" | "aoe" | "displacement" | "control";
 }

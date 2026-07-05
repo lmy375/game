@@ -27,6 +27,8 @@ export interface LevelDef {
   };
   playerUnits: LevelUnitPlacement[];
   enemyUnits: LevelUnitPlacement[];
+  /** 敌方等级：按 enemyGrowth 缩放敌人属性（缺省=1，不缩放）。体现「敌人随进度成长」。 */
+  enemyLevel?: number;
   winCondition: { type: "defeat_all_enemies" };
 }
 
@@ -52,6 +54,9 @@ export function loadLevel(level: LevelDef, registry: ContentRegistry): BattleSta
       actedThisTurn: false,
       cooldowns: {},
       ct: 0,
+      level: 1,
+      xp: 0,
+      skillLevels: {},
       aiProfile: def.aiProfile,
     };
     units.push(unit);

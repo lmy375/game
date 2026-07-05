@@ -1,15 +1,25 @@
 [
   {
-    "id": "swift_charm",
-    "name": "疾风护符",
+    "id": "iron_sword",
+    "name": "铁剑",
     "kind": "equip",
-    "description": "+15 速度，行动更频繁。",
-    "bonus": [{ "stat": "speed", "amount": 15 }]
+    "slot": "weapon",
+    "description": "+4 攻击。",
+    "bonus": [{ "stat": "attack", "amount": 4 }]
+  },
+  {
+    "id": "oak_staff",
+    "name": "橡木法杖",
+    "kind": "equip",
+    "slot": "weapon",
+    "description": "+4 魔力。",
+    "bonus": [{ "stat": "magic", "amount": 4 }]
   },
   {
     "id": "iron_band",
     "name": "铁腕环",
     "kind": "equip",
+    "slot": "weapon",
     "description": "+3 攻击，+2 防御。",
     "bonus": [
       { "stat": "attack", "amount": 3 },
@@ -17,17 +27,62 @@
     ]
   },
   {
+    "id": "leather_armor",
+    "name": "皮甲",
+    "kind": "equip",
+    "slot": "armor",
+    "description": "+15 生命，+2 防御。",
+    "bonus": [
+      { "stat": "hp", "amount": 15 },
+      { "stat": "defense", "amount": 2 }
+    ]
+  },
+  {
     "id": "vitality_gem",
     "name": "活力宝石",
     "kind": "equip",
+    "slot": "armor",
     "description": "+20 生命上限。",
     "bonus": [{ "stat": "hp", "amount": 20 }]
+  },
+  {
+    "id": "swift_charm",
+    "name": "疾风护符",
+    "kind": "equip",
+    "slot": "accessory",
+    "description": "+15 速度，行动更频繁。",
+    "bonus": [{ "stat": "speed", "amount": 15 }]
+  },
+  {
+    "id": "guard_amulet",
+    "name": "守护护身符",
+    "kind": "equip",
+    "slot": "accessory",
+    "description": "+3 防御。",
+    "bonus": [{ "stat": "defense", "amount": 3 }]
   },
   {
     "id": "minor_potion",
     "name": "初级药水",
     "kind": "consumable",
-    "description": "（暂未实装战斗中使用）恢复 30 生命。",
-    "effect": { "type": "heal", "amount": 30 }
+    "description": "恢复 30 生命（自身或射程 1 内友军）。",
+    "effect": { "type": "heal", "amount": 30 },
+    "range": 1
+  },
+  {
+    "id": "greater_potion",
+    "name": "高级药水",
+    "kind": "consumable",
+    "description": "恢复 60 生命（自身或射程 1 内友军）。",
+    "effect": { "type": "heal", "amount": 60 },
+    "range": 1
+  },
+  {
+    "id": "purify_herb",
+    "name": "净化草",
+    "kind": "consumable",
+    "description": "清除目标全部负面状态（自身或射程 1 内友军）。",
+    "effect": { "type": "cleanse" },
+    "range": 1
   }
 ]

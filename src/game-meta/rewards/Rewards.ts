@@ -3,7 +3,7 @@
  * 纯函数。
  */
 import { BattleState, LevelDef, livingUnits } from "@core/index";
-import { PlayerProfile, cloneProfile, unitProgress } from "../profile/Profile";
+import { PlayerProfile, cloneProfile } from "../profile/Profile";
 import { gainXp, applyLevelUps, LevelUpResult } from "../leveling/Leveling";
 import { MetaTables } from "../save/MetaTables";
 
@@ -61,25 +61,39 @@ export interface ApplyRewardsResult {
   profile: PlayerProfile;
   /** 发生等级变化的单位（供结算界面展示）。 */
   levelUps: LevelUpResult[];
+  /** 本场经验增量合计（战斗内击杀 + 通关奖励），供结算界面展示。 */
+  totalXpGained: number;
 }
 
-/** 把奖励回填到档案：加经验 → 升级 → 掉落入背包。纯函数。 */
-export function applyRewards(profile: PlayerProfile, rewards: Rewards, tables: MetaTables): ApplyRewardsResult {
+/**
+ * 把奖励回填到档案。经验以「战斗内单位最终 xp」为权威（已含击杀经验），再加通关保底/存活奖励，
+ * 然后由 applyLevelUps 依累计 xp 幂等推出等级/解锁/技能级/属性点。纯函数。
+ */
+export function applyRewards(
+  profile: PlayerProfile,
+  rewards: Rewards,
+  finalState: BattleState,
+  tables: MetaTables
+): ApplyRewardsResult {
   const next = cloneProfile(profile);
   const levelUps: LevelUpResult[] = [];
+  let totalXpGained = 0;
 
-  for (const [defId, xp] of Object.entries(rewards.xpByDefId)) {
-    const up = unitProgress(next, defId);
-    if (!up) continue;
-    const gained = gainXp(up, xp);
-    const result = applyLevelUps(gained, tables.progression);
-    // 写回该单位的进度。
-    const idx = next.units.findIndex((u) => u.defId === defId);
-    next.units[idx] = result.progress;
+  const finalXpOf = (defId: string): number | undefined =>
+    finalState.units.find((u) => u.faction === "player" && u.defId === defId)?.xp;
+
+  next.units = next.units.map((up) => {
+    const before = up.xp;
+    const authoritative = finalXpOf(up.defId) ?? up.xp; // 含战斗内击杀经验
+    const bonus = rewards.xpByDefId[up.defId] ?? 0; // 通关保底 + 存活奖励
+    const withXp = gainXp({ ...up, xp: authoritative }, bonus);
+    const result = applyLevelUps(withXp, tables.progression);
+    totalXpGained += result.progress.xp - before;
     if (result.toLevel > result.fromLevel) levelUps.push(result);
-  }
+    return result.progress;
+  });
 
   for (const itemId of rewards.itemDrops) next.inventory.push(itemId);
 
-  return { profile: next, levelUps };
+  return { profile: next, levelUps, totalXpGained };
 }

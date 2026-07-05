@@ -5,7 +5,9 @@
  */
 export * from "./profile/Profile";
 export * from "./leveling/Leveling";
+export * from "./leveling/BattleProgression";
 export * from "./items/Items";
+export * from "./items/Inventory";
 export * from "./story/StoryGraph";
 export * from "./save/MetaTables";
 export * from "./save/SaveStore";

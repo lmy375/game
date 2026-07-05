@@ -2,7 +2,21 @@
  * 交互层公共类型：ViewModel（纯数据，给任意表现层渲染）与 SessionHost（表现层需实现的钩子）。
  * 该层零引擎依赖：只认识 game-core 的状态/事件，不认识 DOM、Canvas、Pixi 或其它渲染实现。
  */
-import { BattleState, Position, BattleEvent, LevelDef } from "@core/index";
+import { BattleState, Position, BattleEvent, LevelDef, ItemEffect } from "@core/index";
+
+/**
+ * 战斗内可用的一件消耗品（战役从背包装配后传入）。引擎无关：effect 为 core 级类型。
+ * count 可变（用一件减一件）；count 归零后从菜单移除。
+ */
+export interface BattleItem {
+  itemId: string;
+  name: string;
+  description: string;
+  effect: ItemEffect;
+  /** 目标射程（0=仅自身）。 */
+  range: number;
+  count: number;
+}
 
 /** 战斗结果（与 BattleState.outcome 同型）。 */
 export type Outcome = BattleState["outcome"];
@@ -43,6 +57,23 @@ export interface MenuVM {
   showUndo: boolean;
 }
 
+export interface ItemButtonVM {
+  itemId: string;
+  name: string;
+  /** 短描述（数量等）。 */
+  short: string;
+  /** 完整描述（tooltip）。 */
+  full: string;
+  count: number;
+  disabled: boolean;
+}
+
+/** 战斗内道具菜单（挂在技能菜单下方）。 */
+export interface ItemMenuVM {
+  visible: boolean;
+  items: ItemButtonVM[];
+}
+
 export interface ConfirmVM {
   visible: boolean;
   skillName: string;
@@ -64,6 +95,8 @@ export interface UnitRowVM {
   speed: number;
   hp: number;
   maxHp: number;
+  /** 当前等级（侧栏展示）。 */
+  level: number;
 }
 
 export interface InfoVM {
@@ -77,6 +110,8 @@ export interface ViewModel {
   state: BattleState;
   overlay: OverlayVM;
   menu: MenuVM;
+  /** 战斗内可用道具（消耗品）。 */
+  items: ItemMenuVM;
   confirm: ConfirmVM;
   turnText: string;
   hint: string;

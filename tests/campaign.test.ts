@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { createRegistry, getLevel } from "@data/index";
 import { loadMetaTables, initialSaveData } from "@data/metaIndex";
 import { SaveData, SaveStore } from "@meta/index";
-import { CampaignDirector, CampaignHost, TitleVM, CutsceneVM, ResultVM, EndingVM } from "../src/campaign";
+import { CampaignDirector, CampaignHost, TitleVM, CutsceneVM, ResultVM, EndingVM, LoadoutVM } from "../src/campaign";
+import { BattleItem } from "../src/interaction";
 import { livingUnits, BattleState, LevelDef } from "@core/index";
 
 const registry = createRegistry();
@@ -28,7 +29,13 @@ class FakeHost implements CampaignHost {
   cutscene?: CutsceneVM;
   result?: ResultVM;
   ending?: EndingVM;
-  battle?: { state: BattleState; onEnd: (o: BattleState["outcome"], s: BattleState) => void };
+  battle?: {
+    state: BattleState;
+    onEnd: (o: BattleState["outcome"], s: BattleState) => void;
+    battleItems: BattleItem[];
+    onItemConsumed: (itemId: string) => void;
+  };
+  loadout?: LoadoutVM;
   hidden = 0;
   showTitle(vm: TitleVM) {
     this.title = vm;
@@ -42,11 +49,21 @@ class FakeHost implements CampaignHost {
   showEnding(vm: EndingVM) {
     this.ending = vm;
   }
+  showLoadout(vm: LoadoutVM) {
+    this.loadout = vm;
+  }
   hideScreens() {
     this.hidden++;
   }
-  startBattle(state: BattleState, _level: LevelDef, onEnd: (o: BattleState["outcome"], s: BattleState) => void) {
-    this.battle = { state, onEnd };
+  startBattle(
+    state: BattleState,
+    _level: LevelDef,
+    onEnd: (o: BattleState["outcome"], s: BattleState) => void,
+    _onEvents: unknown,
+    battleItems: BattleItem[],
+    onItemConsumed: (itemId: string) => void
+  ) {
+    this.battle = { state, onEnd, battleItems, onItemConsumed };
   }
 }
 
@@ -134,6 +151,30 @@ describe("CampaignDirector 流程编排", () => {
     const d2 = new CampaignDirector({ registry, tables, store, host: host2, newSave: initialSaveData, levelOf: getLevel });
     d2.boot();
     expect(host2.title!.hasSave).toBe(true);
+  });
+
+  it("升级后结算屏出现加点面板；allocateStat 持久化并在下一场生效", () => {
+    director.boot();
+    director.newGame();
+    for (let i = 0; i < 5; i++) director.advanceCutscene();
+    winCurrentBattle(host); // 第一场胜 → wind_mage/fire_mage 升 2 级，各获 pointsPerLevel 点
+
+    const pts = tables.progression.pointsPerLevel;
+    const windPanel = host.result!.allocations!.find((a) => a.name.includes("风术士"))!;
+    expect(windPanel.unspentPoints).toBe(pts);
+    const attackBase = registry.unit("wind_mage").stats.attack;
+
+    // 加 1 点攻击 → 面板即时刷新、点数 -1。
+    director.allocateStat("wind_mage", "attack");
+    const windPanel2 = host.result!.allocations!.find((a) => a.name.includes("风术士"))!;
+    expect(windPanel2.unspentPoints).toBe(pts - 1);
+
+    // 推进到第二场：buildBattleState 反映加点。
+    director.onResultPrimary();
+    for (let i = 0; i < 5; i++) director.advanceCutscene();
+    const wind = host.battle!.state.units.find((u) => u.defId === "wind_mage")!;
+    // 2 级 wind_mage attack 成长 +1，另加 1 点 → base + 1 + 1。
+    expect(wind.stats.attack).toBe(attackBase + 1 + 1);
   });
 
   it("失败 → 结算为重试，primary 重建同一场（不推进）", () => {

@@ -57,6 +57,8 @@ export class EventAnimator {
       }
       case "unit_died":
         return this.die(e.unitId);
+      case "unit_level_up":
+        return this.levelUp(e.unitId);
       default:
         return;
     }
@@ -123,6 +125,16 @@ export class EventAnimator {
     if (terrain === "trap") this.fx.spriteEffect("trap", c.x, c.y, 112, 0.46);
     this.fx.burst(c.x, c.y, color, 12, 52);
     return this.anim.wait(0.12);
+  }
+
+  private async levelUp(id: string): Promise<void> {
+    const s = this.units.get(id);
+    if (!s) return;
+    this.fx.ring(s.container.x, s.container.y, 0xffd24a, 44, 0.4);
+    this.fx.burst(s.container.x, s.container.y, 0xffd24a, 10, 44);
+    this.fx.float(s.container.x, s.container.y - 30, "LEVEL UP↑", "#ffd24a");
+    this.punch(id, 1.2);
+    return this.anim.wait(0.25);
   }
 
   private async die(id: string): Promise<void> {

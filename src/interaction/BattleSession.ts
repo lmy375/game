@@ -37,6 +37,7 @@ import {
   isAlive,
   BattleAction,
   BattleEvent,
+  chebyshev,
 } from "@core/index";
 import {
   SessionHost,
@@ -46,18 +47,29 @@ import {
   ConfirmVM,
   InfoVM,
   SkillButtonVM,
+  ItemMenuVM,
+  BattleItem,
   ApplyOpts,
   EFFECT_EVENTS,
 } from "./types";
 
 type Pending = { cell?: Position; direction?: Direction; unitId?: string } | null;
 
-/** 流程编排用的可选钩子。两者都不传 = 独立单场战斗（行为与原先完全一致）。 */
+/** 流程编排用的可选钩子。都不传 = 独立单场战斗（行为与原先完全一致）。 */
 export interface BattleSessionHooks {
   /** 从关卡构建初始状态。默认 loadLevel(level, registry)。 */
   buildState?: (level: LevelDef) => BattleState;
   /** 战斗分出胜负时回调一次（带最终状态）。提供后，结算 UX 交由调用方（如战役结算屏）。 */
   onEnd?: (outcome: BattleState["outcome"], finalState: BattleState) => void;
+  /**
+   * 每次 simulate 后处理事件（如战斗内经验/升级）。可就地改 state 并返回追加事件，
+   * 追加事件会并入日志与呈现。不传 = 无战斗内养成。引擎无关：只见 BattleEvent。
+   */
+  onEvents?: (events: BattleEvent[], state: BattleState) => BattleEvent[];
+  /** 本场可用的消耗品池（从玩家背包装配）。不传/空 = 无道具，道具菜单隐藏。 */
+  battleItems?: BattleItem[];
+  /** 使用掉一件消耗品时回调（供战役从背包扣减并存档）。 */
+  onItemConsumed?: (itemId: string) => void;
 }
 
 export class BattleSession {
@@ -68,6 +80,10 @@ export class BattleSession {
   private endNotified = false;
 
   private activeSkill: string | null = null;
+  /** 当前选中的消耗品 id（与 activeSkill 互斥）。 */
+  private activeItem: string | null = null;
+  /** 本场消耗品池（count 可变）。 */
+  private items: BattleItem[] = [];
   private pending: Pending = null;
   private hover: Position | null = null;
   private busy = false;
@@ -94,6 +110,8 @@ export class BattleSession {
   // ---------- 关卡 ----------
   load(level: LevelDef): void {
     this.level = level;
+    // 拷入道具池（count 可变，勿改调用方数组）。
+    this.items = (this.hooks.battleItems ?? []).map((it) => ({ ...it }));
     this.state = this.hooks.buildState ? this.hooks.buildState(level) : loadLevel(level, this.registry);
     this.host.setupLevel(level, this.state);
     this.clearSel();
@@ -111,10 +129,27 @@ export class BattleSession {
 
   private clearSel(): void {
     this.activeSkill = null;
+    this.activeItem = null;
     this.pending = null;
     this.preMove = null;
     this.menuOpen = false;
     this.aimLocked = false;
+  }
+
+  /** 当前正在瞄准（技能或道具）。 */
+  private aiming(): boolean {
+    return this.activeSkill !== null || this.activeItem !== null;
+  }
+
+  private activeItemDef(): BattleItem | undefined {
+    return this.activeItem ? this.items.find((i) => i.itemId === this.activeItem) : undefined;
+  }
+
+  /** 道具的合法目标格：存活我方单位且在射程内（射程 0 = 仅自身）。 */
+  private itemTargetCells(item: BattleItem, user: Unit): Position[] {
+    return this.state.units
+      .filter((u) => u.faction === "player" && isAlive(u) && chebyshev(u.pos, user.pos) <= item.range)
+      .map((u) => u.pos);
   }
 
   // ---------- 查询工具 ----------
@@ -150,7 +185,7 @@ export class BattleSession {
   hoverCell(cell: Position | null): void {
     if (this.busy) return;
     this.hover = cell;
-    if (this.activeSkill && !this.aimLocked && cell) this.updatePendingFromCell(cell);
+    if (this.aiming() && !this.aimLocked && cell) this.updatePendingFromCell(cell);
     this.render();
   }
 
@@ -159,8 +194,8 @@ export class BattleSession {
     if (!this.isPlayerTurn()) return;
     const active = this.active()!;
 
-    // 技能瞄准中：第一次点击锁定范围，第二次点击释放；取消由 cancel() 负责。
-    if (this.activeSkill) {
+    // 技能/道具瞄准中：第一次点击锁定范围，第二次点击释放；取消由 cancel() 负责。
+    if (this.aiming()) {
       if (this.aimLocked) {
         void this.confirm();
       } else {
@@ -199,12 +234,28 @@ export class BattleSession {
     if (!active || active.actedThisTurn) return;
     if ((active.cooldowns[skillId] ?? 0) > 0) return;
     this.activeSkill = skillId;
+    this.activeItem = null;
     this.pending = null;
     this.aimLocked = false;
     this.render();
   }
 
+  /** 选中消耗品进入瞄准（占技能行动：已行动则不可用）。 */
+  selectItem(itemId: string): void {
+    const active = this.active();
+    if (!active || active.actedThisTurn) return;
+    const item = this.items.find((i) => i.itemId === itemId);
+    if (!item || item.count <= 0) return;
+    this.activeItem = itemId;
+    this.activeSkill = null;
+    // 默认目标为自身（总在射程内），确认条立即可用；点友军可改目标。射程 0 直接锁定。
+    this.pending = { unitId: active.instanceId, cell: active.pos };
+    this.aimLocked = item.range === 0 && this.canReleasePending();
+    this.render();
+  }
+
   async confirm(): Promise<void> {
+    if (this.activeItem) return this.confirmItem();
     const active = this.active();
     if (!active || !this.activeSkill || !this.pending) return;
     const skill = this.registry.skill(this.activeSkill);
@@ -234,9 +285,38 @@ export class BattleSession {
     await this.afterPlayerAction();
   }
 
+  /** 释放消耗品：构造 use_item，呈现事件；仅在真正生效后才扣减 count 与回调消耗。 */
+  private async confirmItem(): Promise<void> {
+    const active = this.active();
+    const item = this.activeItemDef();
+    if (!active || !item || !this.pending?.unitId) return;
+    if (!this.canReleasePending()) return;
+
+    const action: BattleAction = {
+      type: "use_item",
+      actorId: active.instanceId,
+      targetUnitId: this.pending.unitId,
+      itemId: item.itemId,
+      effect: item.effect,
+    };
+    this.preMove = null;
+    this.activeItem = null;
+    this.pending = null;
+    this.aimLocked = false;
+    this.menuOpen = false;
+    const applied = await this.exec(action, "skill");
+    if (applied) {
+      item.count -= 1;
+      if (item.count <= 0) this.items = this.items.filter((i) => i.itemId !== item.itemId);
+      this.hooks.onItemConsumed?.(item.itemId);
+    }
+    await this.afterPlayerAction();
+  }
+
   cancel(): void {
-    if (!this.activeSkill) return;
+    if (!this.aiming()) return;
     this.activeSkill = null;
+    this.activeItem = null;
     this.pending = null;
     this.aimLocked = false;
     this.render();
@@ -277,7 +357,14 @@ export class BattleSession {
 
   private updatePendingFromCell(cell: Position): void {
     const active = this.active();
-    if (!active || !this.activeSkill) return;
+    if (!active) return;
+    if (this.activeItem) {
+      // 道具目标：点到的存活我方单位（含自身）。
+      const target = this.findUnitAt(cell);
+      this.pending = target && target.faction === "player" ? { unitId: target.instanceId, cell } : null;
+      return;
+    }
+    if (!this.activeSkill) return;
     const skill = this.registry.skill(this.activeSkill);
     if (skill.targetType === "direction") {
       const dir = eq(cell, active.pos) ? active.facing : directionTo(active.pos, cell);
@@ -293,23 +380,39 @@ export class BattleSession {
   /** 当前 pending 是否可释放（合法且命中有效目标）。 */
   private canReleasePending(): boolean {
     const active = this.active();
-    if (!active || !this.activeSkill || !this.pending) return false;
+    if (!active || !this.pending) return false;
+    if (this.activeItem) {
+      const item = this.activeItemDef();
+      const target = this.pending.unitId ? unitById(this.state, this.pending.unitId) : undefined;
+      return !!item && !!target && target.faction === "player" && isAlive(target) && chebyshev(target.pos, active.pos) <= item.range;
+    }
+    if (!this.activeSkill) return false;
     const skill = this.registry.skill(this.activeSkill);
     if (!canCast(this.state, active, skill, this.pending)) return false;
     const pv = previewSkill(this.state, this.sim, this.registry, active.instanceId, this.activeSkill, this.pending);
     return pv.ok && this.hasEffect(pv.events);
   }
 
-  private async exec(action: BattleAction, kind: "move" | "skill"): Promise<void> {
+  /** 执行一个行动；返回是否真正生效（simulate ok）。 */
+  private async exec(action: BattleAction, kind: "move" | "skill"): Promise<boolean> {
     const res = this.sim.simulate(this.state, action);
     if (!res.ok) {
       this.log(`⚠ ${res.error ?? "行动无效"}`);
       this.render();
-      return;
+      return false;
     }
     this.state = res.nextState;
-    this.logEvents(res.events);
-    await this.present(res.events, { kind });
+    const events = this.withProgression(res.events);
+    this.logEvents(events);
+    await this.present(events, { kind });
+    return true;
+  }
+
+  /** 应用战斗内养成钩子（如击杀升级）：就地改 state，返回「原事件 + 追加事件」。 */
+  private withProgression(events: BattleEvent[]): BattleEvent[] {
+    if (!this.hooks.onEvents) return events;
+    const extra = this.hooks.onEvents(events, this.state) ?? [];
+    return extra.length ? [...events, ...extra] : events;
   }
 
   /**
@@ -362,6 +465,7 @@ export class BattleSession {
         }
         this.busy = false;
         this.activeSkill = null;
+        this.activeItem = null;
         this.pending = null;
         this.preMove = null;
         this.menuOpen = !this.canMove(active); // 无法移动则直接展开技能菜单
@@ -377,9 +481,10 @@ export class BattleSession {
         const res = this.sim.simulate(this.state, act);
         if (res.ok) {
           this.state = res.nextState;
-          this.logEvents(res.events);
+          const events = this.withProgression(res.events);
+          this.logEvents(events);
           if (act.type !== "end_turn") {
-            await this.host.applyEvents(res.events, { kind: "ai" }, this.state);
+            await this.host.applyEvents(events, { kind: "ai" }, this.state);
             this.render();
           }
         }
@@ -411,10 +516,12 @@ export class BattleSession {
     const active = this.active();
     const myTurn = this.isPlayerTurn();
     const overlay = this.buildOverlay(active, myTurn);
+    const menu = this.buildMenu(active, myTurn);
     return {
       state: this.state,
       overlay,
-      menu: this.buildMenu(active, myTurn),
+      menu,
+      items: this.buildItemMenu(active, menu.visible),
       confirm: this.buildConfirm(active, myTurn),
       turnText: this.buildTurnText(),
       hint: this.level ? `🎯 ${this.level.name}：${this.level.teach ?? ""}` : "",
@@ -433,7 +540,13 @@ export class BattleSession {
       const start = unitById(this.preMove.base, active.instanceId);
       if (start) overlay.originCell = start.pos;
     }
-    if (this.activeSkill) {
+    if (this.activeItem) {
+      const item = this.activeItemDef();
+      if (item) {
+        overlay.castCells = this.itemTargetCells(item, active);
+        this.applyItemPreview(overlay, item);
+      }
+    } else if (this.activeSkill) {
       overlay.castCells = getCastableCells(this.state, active, this.registry.skill(this.activeSkill));
       this.applyPreview(overlay);
     } else if (this.canMove(active)) {
@@ -489,8 +602,30 @@ export class BattleSession {
     overlay.hazardWarn = hazard;
   }
 
+  /** 道具预览：在克隆态跑 use_item，标记目标格并显示回血数字。 */
+  private applyItemPreview(overlay: OverlayVM, item: BattleItem): void {
+    const active = this.active();
+    if (!active || !this.pending?.unitId) return;
+    const target = unitById(this.state, this.pending.unitId);
+    if (!target) return;
+    overlay.hitCenter = [target.pos];
+    const res = this.sim.simulate(cloneState(this.state), {
+      type: "use_item",
+      actorId: active.instanceId,
+      targetUnitId: this.pending.unitId,
+      itemId: item.itemId,
+      effect: item.effect,
+    });
+    if (!res.ok) return;
+    const labels: NonNullable<OverlayVM["damage"]> = [];
+    for (const e of res.events) {
+      if (e.type === "unit_healed") labels.push({ pos: target.pos, amount: e.amount, lethal: false, kind: "heal" });
+    }
+    overlay.damage = labels;
+  }
+
   private buildMenu(active: Unit | undefined, myTurn: boolean): MenuVM {
-    const visible = !!active && myTurn && this.menuOpen && !this.activeSkill && !this.finished(active);
+    const visible = !!active && myTurn && this.menuOpen && !this.aiming() && !this.finished(active);
     if (!active || !visible) {
       return { visible: false, unitName: "", anchorCell: { x: 0, y: 0 }, skills: [], showUndo: false };
     }
@@ -515,11 +650,36 @@ export class BattleSession {
     };
   }
 
+  /** 道具菜单：随技能菜单一同显示；消耗品占技能行动，故已行动则禁用。 */
+  private buildItemMenu(active: Unit | undefined, menuVisible: boolean): ItemMenuVM {
+    if (!active || !menuVisible || this.items.length === 0) return { visible: false, items: [] };
+    return {
+      visible: true,
+      items: this.items
+        .filter((it) => it.count > 0)
+        .map((it) => ({
+          itemId: it.itemId,
+          name: it.name,
+          short: `×${it.count}`,
+          full: it.description,
+          count: it.count,
+          disabled: active.actedThisTurn,
+        })),
+    };
+  }
+
   private compactSkillDescription(text: string): string {
     return text.length > 16 ? `${text.slice(0, 15)}…` : text;
   }
 
   private buildConfirm(active: Unit | undefined, myTurn: boolean): ConfirmVM {
+    if (myTurn && active && this.activeItem) {
+      const item = this.activeItemDef();
+      if (!item) return { visible: false, skillName: "", desc: "", canRelease: false };
+      const can = this.canReleasePending();
+      const desc = this.pending?.unitId ? item.description : "选择自身或射程内友军";
+      return { visible: true, skillName: item.name, desc, canRelease: can };
+    }
     if (!(myTurn && active && this.activeSkill && this.pending)) {
       return { visible: false, skillName: "", desc: "", canRelease: false };
     }
@@ -547,8 +707,10 @@ export class BattleSession {
 
   private buildTurnText(): string {
     const active = this.active();
-    if (this.busy) return active ? `敌方行动：${active.name}` : "敌方行动…";
+    // 阵营决定文案，而非 busy —— 播放我方自己动作动画时 busy 也为真，
+    // 若按 busy 判断会把「我方行动」错标成「敌方行动」。
     if (active) return `${active.faction === "player" ? "我方" : "敌方"}行动：${active.name}`;
+    if (this.busy) return "敌方行动…";
     return "";
   }
 
@@ -570,6 +732,7 @@ export class BattleSession {
       speed: u.stats.speed,
       hp: Math.max(0, u.hp),
       maxHp: u.maxHp,
+      level: u.level,
     });
     return {
       order,
@@ -586,7 +749,17 @@ export class BattleSession {
         const u = e.unitId ? unitById(this.state, e.unitId) : undefined;
         this.log(`— 轮到 ${u?.name ?? (e.faction === "player" ? "我方" : "敌方")} 行动 —`);
       }
+      if (e.type === "item_used") {
+        const u = unitById(this.state, e.userId);
+        const name = this.hooks.battleItems?.find((it) => it.itemId === e.itemId)?.name ?? e.itemId;
+        this.log(`🧪 ${u?.name ?? e.userId} 使用了「${name}」`);
+      }
       if (e.type === "battle_ended") this.log(e.outcome === "player_win" ? "🎉 我方胜利" : "💀 我方战败");
+      if (e.type === "unit_level_up") {
+        const u = unitById(this.state, e.unitId);
+        const skills = e.unlockedSkills.length ? `，习得「${e.unlockedSkills.join("、")}」` : "";
+        this.log(`⬆ ${u?.name ?? e.unitId} 升级 Lv.${e.fromLevel} → Lv.${e.toLevel}${skills}`);
+      }
     }
   }
   private log(msg: string): void {

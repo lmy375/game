@@ -6,7 +6,7 @@
  * 复用共用 DomHud 画 HUD。带动画 → applyEvents 中 await 播放，播放期间由 Session 锁定输入。
  */
 import { BattleState, LevelDef, Position, BattleEvent, ContentRegistry } from "@core/index";
-import { BattleSession, SessionHost, ViewModel, ApplyOpts } from "../../interaction";
+import { BattleSession, SessionHost, ViewModel, ApplyOpts, BattleItem } from "../../interaction";
 import { DomHud } from "./DomHud";
 import { Text } from "pixi.js";
 import { Grid } from "./Grid";
@@ -52,6 +52,7 @@ export class BattleController implements SessionHost {
       els,
       {
         selectSkill: (id) => this.session.selectSkill(id),
+        selectItem: (id) => this.session.selectItem(id),
         undoMove: () => this.session.undoMove(),
         endTurn: () => this.session.endActiveUnit(),
         confirm: () => void this.session.confirm(),
@@ -78,10 +79,19 @@ export class BattleController implements SessionHost {
   loadCampaignBattle(
     state: BattleState,
     level: LevelDef,
-    onEnd: (outcome: BattleState["outcome"], finalState: BattleState) => void
+    onEnd: (outcome: BattleState["outcome"], finalState: BattleState) => void,
+    onEvents?: (events: BattleEvent[], state: BattleState) => BattleEvent[],
+    battleItems?: BattleItem[],
+    onItemConsumed?: (itemId: string) => void
   ): void {
     this.campaign = true;
-    this.session = new BattleSession(this.registry, this, { buildState: () => state, onEnd });
+    this.session = new BattleSession(this.registry, this, {
+      buildState: () => state,
+      onEnd,
+      onEvents,
+      battleItems,
+      onItemConsumed,
+    });
     this.session.load(level);
   }
   tapCell(cell: Position): void {

@@ -32,10 +32,16 @@ async function main(): Promise<void> {
   const controller = new BattleController(registry, stage, els);
 
   const screens = new DomScreens(document.getElementById("screen-root")!, {
-    title: (id) => (id === "new" ? director.newGame() : director.continueGame()),
+    title: (id) =>
+      id === "new" ? director.newGame() : id === "continue" ? director.continueGame() : director.openLoadout("title"),
     cutsceneNext: () => director.advanceCutscene(),
     resultPrimary: () => director.onResultPrimary(),
+    resultSecondary: () => director.openLoadout("result"),
+    allocateStat: (defId, stat) => director.allocateStat(defId, stat),
     endingToTitle: () => director.toTitle(),
+    equip: (defId, itemId) => director.doEquip(defId, itemId),
+    unequip: (defId, slot) => director.doUnequip(defId, slot),
+    closeLoadout: () => director.closeLoadout(),
   });
 
   const host: CampaignHost = {
@@ -43,8 +49,10 @@ async function main(): Promise<void> {
     showCutscene: (vm) => screens.showCutscene(vm),
     showResult: (vm) => screens.showResult(vm),
     showEnding: (vm) => screens.showEnding(vm),
+    showLoadout: (vm) => screens.showLoadout(vm),
     hideScreens: () => screens.hide(),
-    startBattle: (state, level, onEnd) => controller.loadCampaignBattle(state, level, onEnd),
+    startBattle: (state, level, onEnd, onEvents, battleItems, onItemConsumed) =>
+      controller.loadCampaignBattle(state, level, onEnd, onEvents, battleItems, onItemConsumed),
   };
 
   const director = new CampaignDirector({

@@ -34,15 +34,17 @@ export function loadMetaTables(): MetaTables {
  * 第二关 buildBattleState 中可见。lancer 起手仅 normal_attack（pierce_shot@2, swap_skill@3）。
  */
 export function initialSaveData(): SaveData {
+  const slots = () => ({ weapon: null, armor: null, accessory: null });
   return {
-    version: 1,
+    version: 2,
     profile: {
       units: [
-        { defId: "wind_mage", level: 1, xp: 0, learnedSkills: ["normal_attack", "gale_gather"], equipped: null },
-        { defId: "fire_mage", level: 1, xp: 0, learnedSkills: ["normal_attack", "cross_fire"], equipped: null },
-        { defId: "lancer", level: 1, xp: 0, learnedSkills: ["normal_attack"], equipped: null },
+        { defId: "wind_mage", level: 1, xp: 0, learnedSkills: ["normal_attack", "gale_gather"], equipped: slots(), unspentPoints: 0, allocated: {}, skillLevels: {} },
+        { defId: "fire_mage", level: 1, xp: 0, learnedSkills: ["normal_attack", "cross_fire"], equipped: slots(), unspentPoints: 0, allocated: {}, skillLevels: {} },
+        { defId: "lancer", level: 1, xp: 0, learnedSkills: ["normal_attack", "pierce_shot"], equipped: slots(), unspentPoints: 0, allocated: {}, skillLevels: {} },
       ],
-      inventory: [],
+      // 起始背包：装备与消耗品各若干，功能开箱即用。
+      inventory: ["iron_sword", "leather_armor", "minor_potion", "minor_potion", "purify_herb"],
       storyNodeId: story.startId,
     },
   };
