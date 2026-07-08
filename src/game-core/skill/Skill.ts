@@ -3,7 +3,7 @@
  */
 import { StatusId } from "../unit/Unit";
 
-export type Element = "physical" | "fire" | "wind";
+export type Element = "physical" | "fire" | "wind" | "ice";
 
 /** 施法范围类型。 */
 export type CastRange =
@@ -27,8 +27,12 @@ export type EffectOp =
   | { type: "push"; distance: number }
   // 位移：把命中单位向施法者方向拉近 distance 格
   | { type: "pull"; distance: number }
-  // 位移：把命中单位向目标中心点聚拢，最多 maxDistance 格
-  | { type: "pull_to_center"; maxDistance: number }
+  // 位移：把命中单位向目标中心点聚拢，最多 maxDistance 格。
+  // stopRadius：聚拢的目标菱形半径（曼哈顿距离），到达该半径即停止，不再挤向中心；缺省 0（拉到中心）。
+  | { type: "pull_to_center"; maxDistance: number; stopRadius?: number }
+  // 伤害：与同格 pull_to_center 联动——被聚拢移动过的单位吃 movedMultiplier，
+  // 原地未动（已在目标菱形内或被阻挡）的单位吃 stayedMultiplier。
+  | { type: "gather_damage"; element: Element; movedMultiplier: number; stayedMultiplier: number }
   // 位移：击退（撞墙额外伤害）
   | { type: "knockback"; distance: number; collisionDamage: number }
   // 位移：与施法者交换位置

@@ -17,6 +17,8 @@ export interface LevelUnitPlacement {
 export interface LevelDef {
   id: string;
   name: string;
+  /** 表现层背景资源 ID；核心逻辑不依赖该字段。 */
+  backgroundId?: string;
   teach?: string;
   /** 教学关卡可指定玩家先手；后续行动仍由 CT 速度系统接管。 */
   playerFirst?: boolean;

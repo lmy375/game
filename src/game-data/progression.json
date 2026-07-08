@@ -7,7 +7,9 @@
   "growth": {
     "wind_mage": { "hp": 8, "magic": 4, "attack": 1, "speed": 1 },
     "fire_mage": { "hp": 6, "magic": 5, "defense": 1 },
-    "lancer": { "hp": 12, "attack": 3, "defense": 1 }
+    "lancer": { "hp": 12, "attack": 3, "defense": 1 },
+    "swordsman": { "hp": 11, "attack": 3, "defense": 1 },
+    "ice_mage": { "hp": 6, "magic": 5, "defense": 1 }
   },
   "enemyGrowth": {
     "enemy_soldier": { "hp": 8, "attack": 2, "defense": 1 },
@@ -33,6 +35,16 @@
       { "level": 5, "skill": "sweep" },
       { "level": 7, "skill": "guard_break" },
       { "level": 9, "skill": "charge_thrust" }
+    ],
+    "swordsman": [
+      { "level": 2, "skill": "crescent_slash" },
+      { "level": 5, "skill": "whirlwind_slash" },
+      { "level": 8, "skill": "mortal_strike" }
+    ],
+    "ice_mage": [
+      { "level": 3, "skill": "freeze" },
+      { "level": 6, "skill": "blizzard" },
+      { "level": 10, "skill": "frost_nova" }
     ]
   },
   "skillGrowth": {
@@ -53,6 +65,18 @@
       { "level": 11, "skill": "pierce_shot" },
       { "level": 15, "skill": "charge_thrust" },
       { "level": 19, "skill": "charge_thrust" }
+    ],
+    "swordsman": [
+      { "level": 6, "skill": "crescent_slash" },
+      { "level": 10, "skill": "crescent_slash" },
+      { "level": 14, "skill": "mortal_strike" },
+      { "level": 18, "skill": "mortal_strike" }
+    ],
+    "ice_mage": [
+      { "level": 5, "skill": "frost_bolt" },
+      { "level": 9, "skill": "frost_bolt" },
+      { "level": 13, "skill": "blizzard" },
+      { "level": 17, "skill": "frost_nova" }
     ]
   }
 }

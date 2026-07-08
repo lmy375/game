@@ -4,61 +4,160 @@
     "n_title": {
       "id": "n_title",
       "kind": "title",
-      "next": "n_cut_intro",
-      "title": "阵形之术",
-      "subtitle": "回合制战棋 · Demo"
+      "next": "n_cut_1",
+      "title": "阵棋",
+      "subtitle": "落子成阵，聚敌成杀"
     },
-    "n_cut_intro": {
-      "id": "n_cut_intro",
+
+    "n_cut_1": {
+      "id": "n_cut_1",
       "kind": "cutscene",
       "next": "n_battle_1",
       "lines": [
-        { "speaker": "旁白", "glyph": "", "text": "边境的哨站燃起了狼烟。三名学徒受命前去清剿来犯的敌兵。" },
-        { "speaker": "风术士", "glyph": "风", "text": "敌人散在前方。先用狂风把他们聚到一处。" },
-        { "speaker": "火法师", "glyph": "火", "text": "聚好了，我一发十字火焰就能全收。" }
+        { "speaker": "旁白", "glyph": "", "text": "黑潮军趁夜破关。天亮时，边境烽火台只剩一片焦土——和一个还站着的人。" },
+        { "speaker": "火法师", "glyph": "火", "text": "学院的同伴被冲散了……可只要这团火还没灭，这道关，我就替他们守住。" },
+        { "speaker": "旁白", "glyph": "", "text": "第一批敌兵已经逼近。" }
       ]
     },
-    "n_battle_1": {
-      "id": "n_battle_1",
-      "kind": "battle",
-      "next": "n_result_1",
-      "levelId": "level_001"
-    },
-    "n_result_1": {
-      "id": "n_result_1",
-      "kind": "result",
-      "next": "n_cut_mid"
-    },
-    "n_cut_mid": {
-      "id": "n_cut_mid",
+    "n_battle_1": { "id": "n_battle_1", "kind": "battle", "next": "n_result_1", "levelId": "level_001" },
+    "n_result_1": { "id": "n_result_1", "kind": "result", "next": "n_cut_2" },
+
+    "n_cut_2": {
+      "id": "n_cut_2",
       "kind": "cutscene",
       "next": "n_battle_2",
       "lines": [
-        { "speaker": "旁白", "glyph": "", "text": "首战告捷。短暂的休整后，更密集的敌阵出现在峡谷另一端。" },
-        { "speaker": "枪兵", "glyph": "枪", "text": "我练成贯穿射击了——把他们排成一列，一击就能洞穿数人。" },
-        { "speaker": "风术士", "glyph": "风", "text": "交给我，横向推击能把他们推成整齐的一排。" }
+        { "speaker": "旁白", "glyph": "", "text": "循着厮杀声，火法师赶到断墙之后——风术士被逼在角落，法杖几乎脱手。" },
+        { "speaker": "火法师", "glyph": "火", "text": "撑住！我来了！" },
+        { "speaker": "风术士", "glyph": "风", "text": "你放火，我起风——把他们拢成一团，一起烧！" },
+        { "speaker": "旁白", "glyph": "", "text": "两人背靠背，重新站稳了阵脚。" }
       ]
     },
-    "n_battle_2": {
-      "id": "n_battle_2",
-      "kind": "battle",
-      "next": "n_result_2",
-      "levelId": "level_002"
+    "n_battle_2": { "id": "n_battle_2", "kind": "battle", "next": "n_result_2", "levelId": "level_002" },
+    "n_result_2": { "id": "n_result_2", "kind": "result", "next": "n_cut_3" },
+
+    "n_cut_3": {
+      "id": "n_cut_3",
+      "kind": "cutscene",
+      "next": "n_battle_3",
+      "lines": [
+        { "speaker": "旁白", "glyph": "", "text": "长桥是退向内陆的唯一通路。桥头，一名枪兵独自挡了整整一夜。" },
+        { "speaker": "枪兵", "glyph": "枪", "text": "来得正好……我快撑不住了。这么窄的桥，正适合我的贯穿射击。" },
+        { "speaker": "风术士", "glyph": "风", "text": "把他们逼上桥、排成一列——剩下的交给你。" },
+        { "speaker": "旁白", "glyph": "", "text": "三人成阵，守住了长桥。" }
+      ]
     },
-    "n_result_2": {
-      "id": "n_result_2",
-      "kind": "result",
-      "next": "n_ending"
+    "n_battle_3": { "id": "n_battle_3", "kind": "battle", "next": "n_result_3", "levelId": "level_003" },
+    "n_result_3": { "id": "n_result_3", "kind": "result", "next": "n_cut_4" },
+
+    "n_cut_4": {
+      "id": "n_cut_4",
+      "kind": "cutscene",
+      "next": "n_battle_4",
+      "lines": [
+        { "speaker": "旁白", "glyph": "", "text": "山道被黑潮军的重甲墙死死堵住。刀枪不入的铁盾后，弓手正张弓以待。" },
+        { "speaker": "剑客", "glyph": "剑", "text": "重甲？我的整支队伍，就是被这堵墙碾碎的。这一次，让我来凿开它。" },
+        { "speaker": "火法师", "glyph": "火", "text": "破了甲，剩下的交给我们。" },
+        { "speaker": "旁白", "glyph": "", "text": "剑客的加入，让这支小队第一次有了正面破阵的锋刃。" }
+      ]
     },
+    "n_battle_4": { "id": "n_battle_4", "kind": "battle", "next": "n_result_4", "levelId": "level_004" },
+    "n_result_4": { "id": "n_result_4", "kind": "result", "next": "n_cut_5" },
+
+    "n_cut_5": {
+      "id": "n_cut_5",
+      "kind": "cutscene",
+      "next": "n_battle_5",
+      "lines": [
+        { "speaker": "旁白", "glyph": "", "text": "越往深处寒气越重。冰封的隘口上，一名冰法师正被伏兵围困。" },
+        { "speaker": "火法师", "glyph": "火", "text": "又是伏击——救人！" },
+        { "speaker": "冰法师", "glyph": "冰", "text": "多谢。我一路追查黑潮军的来路——铁甲统帅正在前方城塞集结大军，要抢下整条烽火线，让王国变成瞎子。" },
+        { "speaker": "冰法师", "glyph": "冰", "text": "别急着硬冲。我先把他们冻在原地，冻住的敌人连还手都做不到。" },
+        { "speaker": "旁白", "glyph": "", "text": "五人终于会合。零散的幸存者，成了一支真正的队伍。" }
+      ]
+    },
+    "n_battle_5": { "id": "n_battle_5", "kind": "battle", "next": "n_result_5", "levelId": "level_005" },
+    "n_result_5": { "id": "n_result_5", "kind": "result", "next": "n_cut_6" },
+
+    "n_cut_6": {
+      "id": "n_cut_6",
+      "kind": "cutscene",
+      "next": "n_battle_6",
+      "lines": [
+        { "speaker": "旁白", "glyph": "", "text": "反攻开始了。第一站，是黑潮军设在谷口的前哨营地。" },
+        { "speaker": "剑客", "glyph": "剑", "text": "人齐了，该我们主动出击了。" },
+        { "speaker": "风术士", "glyph": "风", "text": "记住阵形——我聚拢，冰法师控场，剑客枪兵顶前，火法师收尾。" }
+      ]
+    },
+    "n_battle_6": { "id": "n_battle_6", "kind": "battle", "next": "n_result_6", "levelId": "level_006" },
+    "n_result_6": { "id": "n_result_6", "kind": "result", "next": "n_cut_7" },
+
+    "n_cut_7": {
+      "id": "n_cut_7",
+      "kind": "cutscene",
+      "next": "n_battle_7",
+      "lines": [
+        { "speaker": "旁白", "glyph": "", "text": "敌人早有防备，把峡道布满了陷阱与火油。" },
+        { "speaker": "冰法师", "glyph": "冰", "text": "他们想用地形困住我们……" },
+        { "speaker": "火法师", "glyph": "火", "text": "那就反过来——把他们推进自己挖的坑里。" }
+      ]
+    },
+    "n_battle_7": { "id": "n_battle_7", "kind": "battle", "next": "n_result_7", "levelId": "level_007" },
+    "n_result_7": { "id": "n_result_7", "kind": "result", "next": "n_cut_8" },
+
+    "n_cut_8": {
+      "id": "n_cut_8",
+      "kind": "cutscene",
+      "next": "n_battle_8",
+      "lines": [
+        { "speaker": "旁白", "glyph": "", "text": "城塞的大门近在眼前，门后是黑潮军最厚的重甲防线。" },
+        { "speaker": "枪兵", "glyph": "枪", "text": "硬骨头都堆在这儿了。" },
+        { "speaker": "剑客", "glyph": "剑", "text": "扎得越密，越经不起一记旋风斩。" },
+        { "speaker": "冰法师", "glyph": "冰", "text": "再配上暴风雪，一扫一大片。" }
+      ]
+    },
+    "n_battle_8": { "id": "n_battle_8", "kind": "battle", "next": "n_result_8", "levelId": "level_008" },
+    "n_result_8": { "id": "n_result_8", "kind": "result", "next": "n_cut_9" },
+
+    "n_cut_9": {
+      "id": "n_cut_9",
+      "kind": "cutscene",
+      "next": "n_battle_9",
+      "lines": [
+        { "speaker": "旁白", "glyph": "", "text": "冲进内城才发现是个口袋阵——四面涌来的敌军把小队团团围住。" },
+        { "speaker": "火法师", "glyph": "火", "text": "被包围了！" },
+        { "speaker": "冰法师", "glyph": "冰", "text": "别慌，敌人越是聚拢，越是我们的主场。" },
+        { "speaker": "剑客", "glyph": "剑", "text": "以我为中心——旋风斩、冰霜新星，一起转起来！" }
+      ]
+    },
+    "n_battle_9": { "id": "n_battle_9", "kind": "battle", "next": "n_result_9", "levelId": "level_009" },
+    "n_result_9": { "id": "n_result_9", "kind": "result", "next": "n_cut_10" },
+
+    "n_cut_10": {
+      "id": "n_cut_10",
+      "kind": "cutscene",
+      "next": "n_battle_10",
+      "lines": [
+        { "speaker": "旁白", "glyph": "", "text": "城塞最深处，铁甲统帅在护卫的簇拥下缓缓起身。黑潮军的源头，就在眼前。" },
+        { "speaker": "铁甲统帅", "glyph": "", "text": "几个丧家之犬，也敢闯到这里？" },
+        { "speaker": "火法师", "glyph": "火", "text": "当初我一个人都没退。现在，我们五个人，来终结这一切。" },
+        { "speaker": "冰法师", "glyph": "冰", "text": "先冻住他的护卫，斩断他的爪牙——统帅，交给全员合力。" }
+      ]
+    },
+    "n_battle_10": { "id": "n_battle_10", "kind": "battle", "next": "n_result_10", "levelId": "level_010" },
+    "n_result_10": { "id": "n_result_10", "kind": "result", "next": "n_ending" },
+
     "n_ending": {
       "id": "n_ending",
       "kind": "ending",
       "next": null,
-      "title": "Demo 通关",
+      "title": "阵棋 · 通关",
       "lines": [
-        "峡谷恢复了平静。学徒们在实战中变强，也学会了彼此配合的阵形之术。",
-        "更远的战场仍在等待——但那是另一段故事了。",
-        "感谢游玩本 Demo。"
+        "铁甲统帅倒下，黑潮军群龙无首，溃退出境。边境的烽火，一座接一座重新亮起。",
+        "那个曾在焦土上独自死守的火法师，如今身边站着四名并肩的伙伴。",
+        "他们各有所长，却在一次次配合中懂得了：真正的强大，不是一个人的烈焰，而是五个人的阵形。",
+        "更远的疆土仍在等待——但那，是属于这支队伍的下一段故事了。",
+        "阵未散，棋未终。感谢游玩。"
       ]
     }
   }

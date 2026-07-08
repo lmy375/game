@@ -48,6 +48,13 @@ export interface SkillButtonVM {
   disabled: boolean;
 }
 
+/** 「调息」按钮：恢复少量生命并结束该单位行动（无事可做时的选项）。 */
+export interface RestButtonVM {
+  disabled: boolean;
+  /** 按钮短描述（可用时显示恢复量；不可用时显示原因）。 */
+  short: string;
+}
+
 export interface MenuVM {
   visible: boolean;
   unitName: string;
@@ -55,6 +62,9 @@ export interface MenuVM {
   anchorCell: Position;
   skills: SkillButtonVM[];
   showUndo: boolean;
+  rest: RestButtonVM;
+  /** 是否显示「休整」按钮（流程层提供整备钩子时出现）。 */
+  showLoadout: boolean;
 }
 
 export interface ItemButtonVM {

@@ -11,6 +11,7 @@ import {
   unitById,
   evaluateForEnemy,
   BattleAction,
+  restHealAmount,
 } from "@core/index";
 import { createRegistry, getLevel } from "@data/index";
 import { makeState, makeUnit } from "./helpers";
@@ -79,10 +80,10 @@ describe("贯穿射击：直线多杀", () => {
 });
 
 describe("狂风聚拢：为 AOE 创造阵型", () => {
-  it("把分散敌人拉向中心且不造成伤害", () => {
+  it("把 5×5 菱形内敌人聚拢进 3×3 菱形，被吹动者受中等伤害", () => {
     const caster = makeUnit("player", { x: 0, y: 4 }, { skills: ["gale_gather"] });
     const center = { x: 4, y: 4 };
-    const e1 = makeUnit("enemy", { x: 5, y: 5 }, { defId: "e" }); // 3x3 角落
+    const e1 = makeUnit("enemy", { x: 5, y: 5 }, { defId: "e" }); // 距中心 2（5×5 菱形边角）
     const e2 = makeUnit("enemy", { x: 3, y: 3 }, { defId: "e" });
     const state = makeState(9, 9, [caster, e1, e2]);
     const sim = new BattleSimulator(registry);
@@ -91,46 +92,34 @@ describe("狂风聚拢：为 AOE 创造阵型", () => {
     const res = sim.simulate(state, { type: "skill", actorId: caster.instanceId, skillId: "gale_gather", targetCell: center });
     const n1 = unitById(res.nextState, e1.instanceId)!;
     const n2 = unitById(res.nextState, e2.instanceId)!;
-    expect(n1.hp).toBe(before1); // 无伤害
-    expect(md(n1.pos)).toBeLessThan(md(e1.pos)); // 更靠近中心
-    expect(md(n2.pos)).toBeLessThan(md(e2.pos));
+    expect(md(n1.pos)).toBe(1); // 聚拢进 3×3 菱形（半径 1）
+    expect(md(n2.pos)).toBe(1);
+    expect(n1.hp).toBeLessThan(before1); // 移动过 → 中等伤害
   });
 
-  it("第一关教学连招：移动后聚拢，火法师移动后十字火焰可命中所有敌人", () => {
-    let state = loadLevel(getLevel("level_001"), registry);
+  it("教学连招：狂风聚拢后十字火焰命中全部敌人", () => {
+    // 自带布局：风术士聚拢三名纵向散布的敌人，火法师再用十字火焰一网打尽。
+    const wind = makeUnit("player", { x: 1, y: 4 }, { defId: "wind_mage", skills: ["gale_gather", "normal_attack"], stats: { magic: 30, moveRange: 4 } });
+    const fire = makeUnit("player", { x: 2, y: 4 }, { defId: "fire_mage", skills: ["cross_fire"], stats: { magic: 40, moveRange: 4 } });
+    const e1 = makeUnit("enemy", { x: 5, y: 2 }, { defId: "enemy_soldier", stats: { hp: 60, attack: 0, magic: 0, defense: 0, moveRange: 0 } });
+    const e2 = makeUnit("enemy", { x: 5, y: 6 }, { defId: "enemy_soldier", stats: { hp: 60, attack: 0, magic: 0, defense: 0, moveRange: 0 } });
+    const e3 = makeUnit("enemy", { x: 5, y: 4 }, { defId: "enemy_soldier", stats: { hp: 60, attack: 0, magic: 0, defense: 0, moveRange: 0 } });
+    let state = makeState(9, 9, [wind, fire, e1, e2, e3]);
     const sim = new BattleSimulator(registry);
-    const wind = unitById(state, state.activeUnitId!)!;
 
-    let res = sim.simulate(state, { type: "move", actorId: wind.instanceId, moveTo: { x: 3, y: 3 } });
-    expect(res.ok).toBe(true);
-    state = res.nextState;
-
-    res = sim.simulate(state, {
-      type: "skill",
-      actorId: wind.instanceId,
-      skillId: "gale_gather",
-      targetCell: { x: 6, y: 4 },
-    });
+    // 风术士聚拢 (5,4)：(5,2)/(5,6) 被拉进 (5,4) 的菱形，发生位移。
+    let res = sim.simulate(state, { type: "skill", actorId: wind.instanceId, skillId: "gale_gather", targetCell: { x: 5, y: 4 } });
     expect(res.ok).toBe(true);
     expect(res.events.some((e) => e.type === "unit_displaced")).toBe(true);
     state = res.nextState;
 
-    const fire = state.units.find((u) => u.defId === "fire_mage")!;
-    state.activeUnitId = fire.instanceId;
+    // 切到火法师，十字火焰打向 (5,4)：中心+上下左右覆盖聚拢后的三人。
+    const f = state.units.find((u) => u.defId === "fire_mage")!;
+    state.activeUnitId = f.instanceId;
     state.turn = "player";
-    fire.movedThisTurn = false;
-    fire.actedThisTurn = false;
-
-    res = sim.simulate(state, { type: "move", actorId: fire.instanceId, moveTo: { x: 3, y: 4 } });
-    expect(res.ok).toBe(true);
-    state = res.nextState;
-
-    res = sim.simulate(state, {
-      type: "skill",
-      actorId: fire.instanceId,
-      skillId: "cross_fire",
-      targetCell: { x: 6, y: 4 },
-    });
+    f.movedThisTurn = false;
+    f.actedThisTurn = false;
+    res = sim.simulate(state, { type: "skill", actorId: f.instanceId, skillId: "cross_fire", targetCell: { x: 5, y: 4 } });
     expect(res.ok).toBe(true);
     const enemies = res.nextState.units.filter((u) => u.faction === "enemy");
     expect(enemies.every((e) => e.hp < e.maxHp)).toBe(true);
@@ -183,6 +172,46 @@ describe("回合与状态", () => {
     const res = sim.simulate(state, { type: "end_turn" });
     expect(res.nextState.turn).toBe("enemy");
     expect(unitById(res.nextState, enemy.instanceId)!.hp).toBe(90); // 燃烧 10
+  });
+});
+
+describe("调息（rest）", () => {
+  it("恢复 15% 最大生命并结束移动+技能行动", () => {
+    const u = makeUnit("player", { x: 2, y: 2 }, { stats: { hp: 100, attack: 10, magic: 0, defense: 0, moveRange: 3 } });
+    u.hp = 40;
+    const state = makeState(9, 9, [u, makeUnit("enemy", { x: 7, y: 7 })]);
+    const sim = new BattleSimulator(registry);
+    const res = sim.simulate(state, { type: "rest", actorId: u.instanceId });
+    expect(res.ok).toBe(true);
+    const after = unitById(res.nextState, u.instanceId)!;
+    expect(after.hp).toBe(40 + restHealAmount(100)); // +15
+    expect(after.movedThisTurn).toBe(true);
+    expect(after.actedThisTurn).toBe(true);
+    expect(res.events.some((e) => e.type === "unit_healed" && e.amount === restHealAmount(100))).toBe(true);
+  });
+
+  it("恢复量按生命缺口截断，满血调息不产生治疗事件", () => {
+    const hurt = makeUnit("player", { x: 2, y: 2 }, { stats: { hp: 100, attack: 10, magic: 0, defense: 0, moveRange: 3 } });
+    hurt.hp = 95;
+    const sim = new BattleSimulator(registry);
+    const res1 = sim.simulate(makeState(9, 9, [hurt, makeUnit("enemy", { x: 7, y: 7 })]), { type: "rest", actorId: hurt.instanceId });
+    const healEvt = res1.events.find((e) => e.type === "unit_healed");
+    expect(healEvt && healEvt.type === "unit_healed" ? healEvt.amount : 0).toBe(5); // 缺口只有 5
+
+    const full = makeUnit("player", { x: 2, y: 2 });
+    const res2 = new BattleSimulator(registry).simulate(makeState(9, 9, [full, makeUnit("enemy", { x: 7, y: 7 })]), { type: "rest", actorId: full.instanceId });
+    expect(res2.ok).toBe(true); // 仍可当作待机
+    expect(res2.events.some((e) => e.type === "unit_healed")).toBe(false);
+  });
+
+  it("已用过技能后不可调息", () => {
+    const u = makeUnit("player", { x: 2, y: 2 });
+    u.actedThisTurn = true;
+    u.hp = 50;
+    const sim = new BattleSimulator(registry);
+    const res = sim.simulate(makeState(9, 9, [u, makeUnit("enemy", { x: 7, y: 7 })]), { type: "rest", actorId: u.instanceId });
+    expect(res.ok).toBe(false);
+    expect(res.error).toContain("已行动");
   });
 });
 

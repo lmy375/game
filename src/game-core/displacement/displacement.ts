@@ -69,19 +69,23 @@ export function applyPull(state: BattleState, unit: Unit, casterPos: Position, d
   return pullTowards(state, unit, casterPos, dir, distance, "pull", events);
 }
 
-/** Gather / pull_to_center：朝中心点聚拢，不越过中心。 */
+/**
+ * Gather / pull_to_center：朝中心点聚拢，不越过中心。
+ * stopRadius：目标菱形半径（曼哈顿距离），单位到达该半径即停止，形成松散的菱形阵而非全挤中心。缺省 0。
+ */
 export function applyPullToCenter(
   state: BattleState,
   unit: Unit,
   center: Position,
   maxDistance: number,
-  events: BattleEvent[]
+  events: BattleEvent[],
+  stopRadius = 0
 ): StepResult {
   const dir = directionTo(unit.pos, center);
-  return pullTowards(state, unit, center, dir, maxDistance, "gather", events);
+  return pullTowards(state, unit, center, dir, maxDistance, "gather", events, stopRadius);
 }
 
-/** 朝某点逐格拉近，到达该点或越过前停止。 */
+/** 朝某点逐格拉近，到达该点（或 stopRadius 半径）或越过前停止。 */
 function pullTowards(
   state: BattleState,
   unit: Unit,
@@ -89,7 +93,8 @@ function pullTowards(
   dir: Direction,
   maxSteps: number,
   reason: DisplacementReason,
-  events: BattleEvent[]
+  events: BattleEvent[],
+  stopRadius = 0
 ): StepResult {
   const from = clone(unit.pos);
   const vec = DIRECTION_VECTOR[dir];
@@ -97,6 +102,8 @@ function pullTowards(
   let blocked: StepResult["blocked"] = null;
 
   for (let i = 0; i < maxSteps; i++) {
+    // 已进入目标菱形（半径 <= stopRadius）即停止，不再挤向中心。
+    if (manhattan(unit.pos, point) <= stopRadius) break;
     const next = add(unit.pos, vec);
     // 只朝目标点靠近；到达或越过则停止。
     if (manhattan(next, point) >= manhattan(unit.pos, point)) break;
@@ -117,9 +124,9 @@ function pullTowards(
     moved++;
   }
 
-  // 聚拢时，已经紧贴中心（正交相邻）的单位无需移动即已在十字位上，
+  // 聚拢时，已经在目标菱形内（或紧贴其外一格）的单位无需移动即已成阵，
   // 不应报「被阻挡」——那会让玩家误以为聚拢失败。
-  const alreadyInPlace = reason === "gather" && manhattan(from, point) === 1;
+  const alreadyInPlace = reason === "gather" && manhattan(from, point) <= stopRadius + 1;
   if (moved > 0) {
     events.push({ type: "unit_displaced", unitId: unit.instanceId, from, to: clone(unit.pos), reason });
   } else if (blocked && !alreadyInPlace) {

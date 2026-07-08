@@ -51,8 +51,8 @@ async function main(): Promise<void> {
     showEnding: (vm) => screens.showEnding(vm),
     showLoadout: (vm) => screens.showLoadout(vm),
     hideScreens: () => screens.hide(),
-    startBattle: (state, level, onEnd, onEvents, battleItems, onItemConsumed) =>
-      controller.loadCampaignBattle(state, level, onEnd, onEvents, battleItems, onItemConsumed),
+    startBattle: (state, level, hooks) => controller.loadCampaignBattle(state, level, hooks),
+    updateBattleUnitStats: (patches) => controller.updateUnitStats(patches),
   };
 
   const director = new CampaignDirector({
@@ -80,7 +80,6 @@ async function main(): Promise<void> {
       controller.load(getLevel(select.value));
     });
   }
-  document.getElementById("end-turn")!.addEventListener("click", () => controller.endActiveUnit());
 
   director.boot();
 

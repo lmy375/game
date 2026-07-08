@@ -42,6 +42,8 @@ export function initialSaveData(): SaveData {
         { defId: "wind_mage", level: 1, xp: 0, learnedSkills: ["normal_attack", "gale_gather"], equipped: slots(), unspentPoints: 0, allocated: {}, skillLevels: {} },
         { defId: "fire_mage", level: 1, xp: 0, learnedSkills: ["normal_attack", "cross_fire"], equipped: slots(), unspentPoints: 0, allocated: {}, skillLevels: {} },
         { defId: "lancer", level: 1, xp: 0, learnedSkills: ["normal_attack", "pierce_shot"], equipped: slots(), unspentPoints: 0, allocated: {}, skillLevels: {} },
+        { defId: "swordsman", level: 1, xp: 0, learnedSkills: ["normal_attack", "guard_break"], equipped: slots(), unspentPoints: 0, allocated: {}, skillLevels: {} },
+        { defId: "ice_mage", level: 1, xp: 0, learnedSkills: ["normal_attack", "frost_bolt"], equipped: slots(), unspentPoints: 0, allocated: {}, skillLevels: {} },
       ],
       // 起始背包：装备与消耗品各若干，功能开箱即用。
       inventory: ["iron_sword", "leather_armor", "minor_potion", "minor_potion", "purify_herb"],

@@ -29,8 +29,7 @@ export class EventAnimator {
       case "skill_cast": {
         const caster = this.units.get(e.casterId);
         const fromCell = caster ? this.cellOf(caster.container.x, caster.container.y) : { x: 0, y: 0 };
-        this.fx.cast(e.skillId, fromCell, e.targetCell ?? null);
-        return this.anim.wait(0.22);
+        return this.anim.wait(this.fx.cast(e.skillId, fromCell, e.targetCell ?? null));
       }
       case "unit_displaced":
         return this.displace(e.unitId, e.to, e.reason);

@@ -3,9 +3,9 @@
   "configurations": [
     {
       "name": "game",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "5180", "--strictPort"],
-      "port": 5180
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev", "--port", "${port}", "--strictPort"],
+      "autoPort": true
     }
   ]
 }

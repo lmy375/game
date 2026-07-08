@@ -38,6 +38,8 @@ import {
   BattleAction,
   BattleEvent,
   chebyshev,
+  restHealAmount,
+  UnitStats,
 } from "@core/index";
 import {
   SessionHost,
@@ -70,6 +72,15 @@ export interface BattleSessionHooks {
   battleItems?: BattleItem[];
   /** 使用掉一件消耗品时回调（供战役从背包扣减并存档）。 */
   onItemConsumed?: (itemId: string) => void;
+  /** 玩家在行动菜单点「休整」时回调（流程层打开整备界面）。不传 = 菜单不显示休整。 */
+  onOpenLoadout?: () => void;
+}
+
+/** 整备后重算出的单位属性补丁（按 defId 应用到我方单位）。 */
+export interface UnitStatPatch {
+  defId: string;
+  stats: UnitStats;
+  maxHp: number;
 }
 
 export class BattleSession {
@@ -313,12 +324,69 @@ export class BattleSession {
     await this.afterPlayerAction();
   }
 
+  /** 取消（右键/取消按钮）：瞄准中退出瞄准；否则收起行动菜单。 */
   cancel(): void {
-    if (!this.aiming()) return;
+    if (this.aiming()) {
+      this.activeSkill = null;
+      this.activeItem = null;
+      this.pending = null;
+      this.aimLocked = false;
+      this.render();
+      return;
+    }
+    if (this.menuOpen) {
+      this.menuOpen = false;
+      this.render();
+    }
+  }
+
+  /** 调息：恢复少量生命并结束该单位行动（占技能行动，等同待机+回复）。 */
+  rest(): void {
+    if (!this.isPlayerTurn()) return;
+    const active = this.active()!;
+    if (active.actedThisTurn || active.hp >= active.maxHp) return;
+    void this.doRest(active);
+  }
+
+  private async doRest(active: Unit): Promise<void> {
+    const healed = Math.min(restHealAmount(active.maxHp), active.maxHp - active.hp);
+    // 调息提交暂定移动并清空瞄准（与释放技能一致）。
+    this.preMove = null;
     this.activeSkill = null;
     this.activeItem = null;
     this.pending = null;
     this.aimLocked = false;
+    this.menuOpen = false;
+    this.log(`🧘 ${active.name} 调息，恢复 ${healed} 点生命`);
+    await this.exec({ type: "rest", actorId: active.instanceId }, "skill");
+    await this.afterPlayerAction();
+  }
+
+  /** 休整：请求流程层打开整备界面（仅我方行动时可用）。 */
+  openLoadout(): void {
+    if (!this.isPlayerTurn()) return;
+    this.hooks.onOpenLoadout?.();
+  }
+
+  /**
+   * 应用整备后的属性补丁（等级成长+加点+装备重算）：按 defId 改我方存活单位，
+   * 保持已受伤害不变（最低留 1 血，卸装不致死）；暂定移动的回退基态同步打补丁，
+   * 否则「休整后撤销移动」会把属性一并回滚。
+   */
+  applyStatPatches(patches: UnitStatPatch[]): void {
+    const applyTo = (state: BattleState): void => {
+      for (const p of patches) {
+        for (const u of state.units) {
+          if (u.faction !== "player" || u.defId !== p.defId || !isAlive(u)) continue;
+          const damageTaken = u.maxHp - u.hp;
+          u.stats = { ...p.stats };
+          u.maxHp = p.maxHp;
+          u.hp = Math.max(1, p.maxHp - damageTaken);
+        }
+      }
+    };
+    applyTo(this.state);
+    if (this.preMove) applyTo(this.preMove.base);
     this.render();
   }
 
@@ -627,7 +695,15 @@ export class BattleSession {
   private buildMenu(active: Unit | undefined, myTurn: boolean): MenuVM {
     const visible = !!active && myTurn && this.menuOpen && !this.aiming() && !this.finished(active);
     if (!active || !visible) {
-      return { visible: false, unitName: "", anchorCell: { x: 0, y: 0 }, skills: [], showUndo: false };
+      return {
+        visible: false,
+        unitName: "",
+        anchorCell: { x: 0, y: 0 },
+        skills: [],
+        showUndo: false,
+        rest: { disabled: true, short: "" },
+        showLoadout: false,
+      };
     }
     const skills: SkillButtonVM[] = active.skills.map((skillId) => {
       const skill = this.registry.skill(skillId);
@@ -647,7 +723,17 @@ export class BattleSession {
       anchorCell: active.pos,
       skills,
       showUndo: this.preMove?.unitId === active.instanceId,
+      rest: this.buildRestButton(active),
+      showLoadout: !!this.hooks.onOpenLoadout,
     };
+  }
+
+  /** 调息按钮：已行动/满血时禁用并说明原因，可用时显示恢复量。 */
+  private buildRestButton(active: Unit): MenuVM["rest"] {
+    if (active.actedThisTurn) return { disabled: true, short: "本回合已行动" };
+    if (active.hp >= active.maxHp) return { disabled: true, short: "生命已满" };
+    const healed = Math.min(restHealAmount(active.maxHp), active.maxHp - active.hp);
+    return { disabled: false, short: `恢复 ${healed} 生命，结束行动` };
   }
 
   /** 道具菜单：随技能菜单一同显示；消耗品占技能行动，故已行动则禁用。 */

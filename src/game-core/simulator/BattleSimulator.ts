@@ -9,8 +9,16 @@ import { BattleEvent } from "../state/events";
 import { ContentRegistry } from "../content/Registry";
 import { findPath, computeMoveRange } from "../pathfinding/pathfinding";
 import { canCast, resolveSkillEffects, SkillTarget } from "../skill/resolveSkill";
-import { triggerTerrain, processDeaths, applyItemEffect, ItemEffect } from "../skill/combat";
+import { triggerTerrain, processDeaths, applyItemEffect, ItemEffect, heal } from "../skill/combat";
 import { advanceInitiative } from "../turn/turn";
+
+/** 调息恢复比例（占最大生命）。 */
+export const REST_HEAL_RATIO = 0.15;
+
+/** 调息的理论恢复量（不含生命上限截断）。 */
+export function restHealAmount(maxHp: number): number {
+  return Math.max(1, Math.round(maxHp * REST_HEAL_RATIO));
+}
 
 export type BattleAction =
   | { type: "move"; actorId: string; moveTo: Position }
@@ -23,6 +31,7 @@ export type BattleAction =
       direction?: Direction;
     }
   | { type: "use_item"; actorId: string; targetUnitId: string; itemId: string; effect: ItemEffect }
+  | { type: "rest"; actorId: string }
   | { type: "wait"; actorId: string }
   | { type: "end_turn" };
 
@@ -63,6 +72,8 @@ export class BattleSimulator {
         return this.doSkill(next, events, actor.instanceId, action);
       case "use_item":
         return this.doUseItem(next, events, actor.instanceId, action);
+      case "rest":
+        return this.doRest(next, events, actor.instanceId);
       case "wait": {
         actor.movedThisTurn = true;
         actor.actedThisTurn = true;
@@ -140,6 +151,23 @@ export class BattleSimulator {
 
     events.push({ type: "item_used", userId: actorId, itemId: action.itemId, targetUnitId: target.instanceId });
     applyItemEffect(state, target, action.effect, events);
+    actor.actedThisTurn = true;
+
+    this.finalize(state, events);
+    return { nextState: state, events, ok: true };
+  }
+
+  /**
+   * 调息：恢复少量生命（REST_HEAL_RATIO × 最大生命，按缺口截断），并结束该单位本回合全部行动。
+   * 占用「技能行动」：已用过技能/道具则不可调息；调息后也不可再移动（原地休息）。
+   */
+  private doRest(state: BattleState, events: BattleEvent[], actorId: string): BattleResult {
+    const actor = unitById(state, actorId)!;
+    if (actor.actedThisTurn) return { nextState: state, events, ok: false, error: "本回合已行动" };
+
+    const healed = Math.min(restHealAmount(actor.maxHp), actor.maxHp - actor.hp);
+    if (healed > 0) heal(state, actor, healed, events);
+    actor.movedThisTurn = true;
     actor.actedThisTurn = true;
 
     this.finalize(state, events);

@@ -4,7 +4,7 @@
  */
 import { BattleState, BattleEvent, LevelDef, UnitStats } from "@core/index";
 import { EquipSlot } from "@meta/index";
-import { BattleItem } from "../interaction";
+import { BattleItem, UnitStatPatch } from "../interaction";
 
 /** 立绘 token：复用「圆盘 + 字形」单位视觉语言，无图片资源。 */
 export interface PortraitVM {
@@ -80,6 +80,12 @@ export interface ResultVM {
 
 // ---------- 整备界面 ----------
 
+/** 一条属性加成的展示（如「攻击 +4」）。 */
+export interface StatBonusVM {
+  label: string;
+  amount: number;
+}
+
 /** 背包中一件物品的展示（装备与消耗品通用）。 */
 export interface InventoryItemVM {
   itemId: string;
@@ -87,6 +93,8 @@ export interface InventoryItemVM {
   description: string;
   /** 装备槽位（消耗品为 undefined）。 */
   slot?: EquipSlot;
+  /** 装备的属性加成（消耗品为 undefined）。 */
+  bonuses?: StatBonusVM[];
   count: number;
 }
 
@@ -95,7 +103,7 @@ export interface LoadoutSlotVM {
   slot: EquipSlot;
   label: string;
   /** 已装备物品（空槽为 undefined）。 */
-  item?: { itemId: string; name: string; description: string };
+  item?: { itemId: string; name: string; description: string; bonuses?: StatBonusVM[] };
 }
 
 /** 整备界面里一个单位的面板。 */
@@ -129,6 +137,19 @@ export interface EndingVM {
  * 表现层实现的屏幕呈现面。镜像 SessionHost：纯数据进，意图回调出（回调由 Director 提供，平台按钮触发）。
  * 所有 show* 同步渲染；战斗交给已有的战斗层（startBattle）。
  */
+/**
+ * startBattle 的战斗钩子（表现层原样转交给交互层 BattleSessionHooks）。
+ * onEnd=分出胜负回调；onEvents=战斗内养成（经验/升级）；battleItems/onItemConsumed=消耗品池与扣减；
+ * onOpenLoadout=战斗中点「休整」时打开整备界面。
+ */
+export interface CampaignBattleHooks {
+  onEnd(outcome: BattleState["outcome"], finalState: BattleState): void;
+  onEvents(events: BattleEvent[], state: BattleState): BattleEvent[];
+  battleItems: BattleItem[];
+  onItemConsumed(itemId: string): void;
+  onOpenLoadout(): void;
+}
+
 export interface CampaignHost {
   showTitle(vm: TitleVM): void;
   showCutscene(vm: CutsceneVM): void;
@@ -137,16 +158,8 @@ export interface CampaignHost {
   showLoadout(vm: LoadoutVM): void;
   /** 隐藏全部剧情屏幕，露出底下可交互的战斗棋盘。 */
   hideScreens(): void;
-  /**
-   * 把一场「预先装配好的」战斗交给战斗层。战斗结束时 host 需回调 onEnd（接到 Director）。
-   * battleItems=本场可用消耗品（从背包装配）；onItemConsumed=用掉一件时回调（扣背包+存档）。
-   */
-  startBattle(
-    state: BattleState,
-    level: LevelDef,
-    onEnd: (outcome: BattleState["outcome"], finalState: BattleState) => void,
-    onEvents: (events: BattleEvent[], state: BattleState) => BattleEvent[],
-    battleItems: BattleItem[],
-    onItemConsumed: (itemId: string) => void
-  ): void;
+  /** 把一场「预先装配好的」战斗交给战斗层。战斗结束时 host 需回调 hooks.onEnd（接到 Director）。 */
+  startBattle(state: BattleState, level: LevelDef, hooks: CampaignBattleHooks): void;
+  /** 战斗中整备（休整）关闭后：把按档案重算的我方属性补丁应用到进行中的战斗。 */
+  updateBattleUnitStats(patches: UnitStatPatch[]): void;
 }

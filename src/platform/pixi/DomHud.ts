@@ -21,6 +21,8 @@ export interface HudHandlers {
   selectItem(itemId: string): void;
   undoMove(): void;
   endTurn(): void;
+  rest(): void;
+  openLoadout(): void;
   confirm(): void;
   cancel(): void;
   restart(): void;
@@ -34,7 +36,13 @@ export class DomHud {
     private readonly els: HudEls,
     private readonly handlers: HudHandlers,
     private readonly positionMenu: PositionMenu
-  ) {}
+  ) {
+    // 菜单浮在棋盘上方会挡住画布的右键事件：在菜单上右键同样视为取消（收起菜单）。
+    this.els.menu.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      this.handlers.cancel();
+    });
+  }
 
   render(vm: ViewModel): void {
     this.els.hint.textContent = vm.hint;
@@ -58,14 +66,11 @@ export class DomHud {
 
   private renderMenu(vm: ViewModel): void {
     const menu = this.els.menu;
-    const panel = menu.closest<HTMLElement>(".action-panel");
     if (!vm.menu.visible) {
       menu.style.display = "none";
       menu.innerHTML = "";
-      if (panel) panel.style.display = "none";
       return;
     }
-    if (panel) panel.style.display = "block";
     menu.innerHTML = "";
     const title = document.createElement("div");
     title.className = "menu-title";
@@ -100,12 +105,31 @@ export class DomHud {
       }
     }
 
+    // 调息：恢复少量生命并结束行动（无事可做时的选项）。
+    const rest = document.createElement("button");
+    rest.className = "skill-btn rest-btn";
+    rest.disabled = vm.menu.rest.disabled;
+    rest.innerHTML = `<span class="skill-icon rest-icon">🧘</span><span class="skill-copy"><b>调息</b><small>${vm.menu.rest.short}</small></span>`;
+    rest.title = "原地调息：恢复少量生命，并结束该单位本回合行动";
+    rest.onclick = () => this.handlers.rest();
+    menu.appendChild(rest);
+
     if (vm.menu.showUndo) {
       const undo = document.createElement("button");
       undo.className = "menu-secondary";
       undo.textContent = "↩ 撤销移动";
       undo.onclick = () => this.handlers.undoMove();
       menu.appendChild(undo);
+    }
+
+    // 休整：打开整备界面（调整装备/加点后返回战斗）。
+    if (vm.menu.showLoadout) {
+      const loadout = document.createElement("button");
+      loadout.className = "menu-secondary";
+      loadout.textContent = "🛠 休整";
+      loadout.title = "进入整备界面：调整装备与属性点，返回后立即生效";
+      loadout.onclick = () => this.handlers.openLoadout();
+      menu.appendChild(loadout);
     }
 
     const end = document.createElement("button");

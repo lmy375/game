@@ -6,7 +6,14 @@
  * 复用共用 DomHud 画 HUD。带动画 → applyEvents 中 await 播放，播放期间由 Session 锁定输入。
  */
 import { BattleState, LevelDef, Position, BattleEvent, ContentRegistry } from "@core/index";
-import { BattleSession, SessionHost, ViewModel, ApplyOpts, BattleItem } from "../../interaction";
+import {
+  BattleSession,
+  BattleSessionHooks,
+  SessionHost,
+  ViewModel,
+  ApplyOpts,
+  UnitStatPatch,
+} from "../../interaction";
 import { DomHud } from "./DomHud";
 import { Text } from "pixi.js";
 import { Grid } from "./Grid";
@@ -17,6 +24,7 @@ import { UnitView } from "./UnitView";
 import { Effects } from "./Effects";
 import { EventAnimator } from "./EventAnimator";
 import { Animator } from "./Anim";
+import { battleBackgroundUrls } from "./AssetManifest";
 
 export interface ControllerEls {
   menu: HTMLElement;
@@ -42,6 +50,8 @@ export class BattleController implements SessionHost {
   private effects!: Effects;
   private events!: EventAnimator;
   private previewLabels: Text[] = [];
+  private boardScale = 1;
+  private boardOffset = { x: 0, y: 0 };
   /** 战役模式：抑制战斗自带 banner，结算交给 CampaignDirector。 */
   private campaign = false;
 
@@ -55,6 +65,8 @@ export class BattleController implements SessionHost {
         selectItem: (id) => this.session.selectItem(id),
         undoMove: () => this.session.undoMove(),
         endTurn: () => this.session.endActiveUnit(),
+        rest: () => this.session.rest(),
+        openLoadout: () => this.session.openLoadout(),
         confirm: () => void this.session.confirm(),
         cancel: () => this.session.cancel(),
         restart: () => this.session.restart(),
@@ -62,6 +74,10 @@ export class BattleController implements SessionHost {
       (menu, anchor) => this.positionMenu(menu, anchor)
     );
     this.bindInput();
+    window.addEventListener("resize", () => {
+      if (!this.grid) return;
+      this.layoutBoard();
+    });
   }
 
   get state(): BattleState {
@@ -75,24 +91,16 @@ export class BattleController implements SessionHost {
     this.session.load(level);
   }
 
-  /** 战役模式：用预装配状态开战，结束回调给 Director。 */
-  loadCampaignBattle(
-    state: BattleState,
-    level: LevelDef,
-    onEnd: (outcome: BattleState["outcome"], finalState: BattleState) => void,
-    onEvents?: (events: BattleEvent[], state: BattleState) => BattleEvent[],
-    battleItems?: BattleItem[],
-    onItemConsumed?: (itemId: string) => void
-  ): void {
+  /** 战役模式：用预装配状态开战，钩子（结束/养成/道具/休整）原样接入交互层。 */
+  loadCampaignBattle(state: BattleState, level: LevelDef, hooks: Omit<BattleSessionHooks, "buildState">): void {
     this.campaign = true;
-    this.session = new BattleSession(this.registry, this, {
-      buildState: () => state,
-      onEnd,
-      onEvents,
-      battleItems,
-      onItemConsumed,
-    });
+    this.session = new BattleSession(this.registry, this, { buildState: () => state, ...hooks });
     this.session.load(level);
+  }
+
+  /** 战斗中休整返回：应用按档案重算的我方属性补丁。 */
+  updateUnitStats(patches: UnitStatPatch[]): void {
+    this.session.applyStatPatches(patches);
   }
   tapCell(cell: Position): void {
     this.session.tapCell(cell);
@@ -113,8 +121,9 @@ export class BattleController implements SessionHost {
   // ---------- SessionHost 实现 ----------
   setupLevel(level: LevelDef, state: BattleState): void {
     this.grid = new Grid(level.board.width, level.board.height);
-    this.stage.resize(this.grid.pxWidth, this.grid.pxHeight);
-    this.stage.world.position.set(0, 0);
+    const backgroundId = level.backgroundId as keyof typeof battleBackgroundUrls | undefined;
+    this.stage.setBackground(backgroundId ? battleBackgroundUrls[backgroundId] ?? battleBackgroundUrls.default : battleBackgroundUrls.default);
+    this.layoutBoard();
     this.stage.units.sortableChildren = true; // 等距下按深度排序单位遮挡
     this.stage.clear();
 
@@ -127,6 +136,14 @@ export class BattleController implements SessionHost {
     this.effects = new Effects(this.stage.fx, this.stage.world, this.grid, this.animator);
     this.events = new EventAnimator(this.grid, this.units, this.board, this.effects, this.animator);
     this.units.sync(state);
+  }
+
+  private layoutBoard(): void {
+    const placement = this.stage.resizeForBoard(this.grid.pxWidth, this.grid.pxHeight);
+    this.boardScale = placement.scale;
+    this.boardOffset = { x: placement.x, y: placement.y };
+    this.stage.world.scale.set(placement.scale);
+    this.stage.world.position.set(placement.x, placement.y);
   }
 
   render(vm: ViewModel): void {
@@ -184,24 +201,33 @@ export class BattleController implements SessionHost {
     );
   }
 
-  private displayScale(): number {
-    const rect = this.stage.canvas.getBoundingClientRect();
-    return rect.width > 0 ? this.grid.pxWidth / rect.width : 1;
+  /**
+   * 显示像素 → 逻辑像素的换算比例。X/Y 分开计算：canvas 被 CSS 缩放时
+   * 宽高比不一定与逻辑宽高比一致（autoDensity 写死了内联 height，max-width 只压宽），
+   * 用统一比例会让 Y 逐行累积偏移——越靠下的格子越明显错位。
+   */
+  private viewScale(rect: DOMRect): { sx: number; sy: number } {
+    return {
+      sx: rect.width > 0 ? this.stage.app.screen.width / rect.width : 1,
+      sy: rect.height > 0 ? this.stage.app.screen.height / rect.height : 1,
+    };
   }
 
   private pick(clientX: number, clientY: number): Position | null {
     const rect = this.stage.canvas.getBoundingClientRect();
-    const scale = this.displayScale();
-    return this.grid.pixelToCell((clientX - rect.left) * scale, (clientY - rect.top) * scale);
+    const { sx, sy } = this.viewScale(rect);
+    const stageX = (clientX - rect.left) * sx;
+    const stageY = (clientY - rect.top) * sy;
+    return this.grid.pixelToCell((stageX - this.boardOffset.x) / this.boardScale, (stageY - this.boardOffset.y) / this.boardScale);
   }
 
   /** 把浮动菜单定位到行动单位旁（贴右，越界翻左/夹紧）。 */
   private positionMenu(menu: HTMLElement, anchor: Position): void {
-    const scale = 1 / this.displayScale();
-    const c = this.grid.center(anchor);
-    const ax = c.x * scale;
-    const ay = c.y * scale;
     const rect = this.stage.canvas.getBoundingClientRect();
+    const { sx, sy } = this.viewScale(rect);
+    const c = this.grid.center(anchor);
+    const ax = (this.boardOffset.x + c.x * this.boardScale) / sx;
+    const ay = (this.boardOffset.y + c.y * this.boardScale) / sy;
     const menuW = menu.offsetWidth || 150;
     const menuH = menu.offsetHeight || 0;
     let left = ax + 30;

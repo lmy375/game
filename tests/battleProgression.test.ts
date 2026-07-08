@@ -7,10 +7,10 @@ import { BattleEvent, BattleState, skillPower } from "@core/index";
 const registry = createRegistry();
 const tables = loadMetaTables();
 
-/** 装配 level_001 战斗态，返回 profile 与 state。 */
+/** 装配含风术士的战斗态（level_002：火法师 + 风术士），返回 profile 与 state。 */
 function setup() {
   const save = initialSaveData();
-  const state = buildBattleState(save.profile, getLevel("level_001"), registry, tables);
+  const state = buildBattleState(save.profile, getLevel("level_002"), registry, tables);
   return { profile: save.profile, state };
 }
 

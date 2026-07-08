@@ -15,6 +15,7 @@ import {
   applyRewards,
   processCombatXp,
   allocatePoint,
+  levelUpNewcomers,
   composeUnitStats,
   unitProgress,
   nodeById,
@@ -34,7 +35,7 @@ import {
   consumeItem,
   inventoryStacks,
 } from "@meta/index";
-import { BattleItem } from "../interaction";
+import { BattleItem, UnitStatPatch } from "../interaction";
 import {
   CampaignHost,
   TitleVM,
@@ -50,6 +51,7 @@ import {
   LoadoutUnitVM,
   LoadoutSlotVM,
   InventoryItemVM,
+  StatBonusVM,
 } from "./types";
 
 /** 可手动加点的属性（不含 moveRange，避免机动性被点数轻易堆爆）。 */
@@ -63,6 +65,22 @@ const ALLOCATABLE_STATS: { key: keyof UnitStats; label: string }[] = [
 
 /** 装备槽位中文名。 */
 const SLOT_LABELS: Record<EquipSlot, string> = { weapon: "武器", armor: "护甲", accessory: "饰品" };
+
+/** 属性中文名（用于装备加成展示；含 moveRange 兜底）。 */
+const STAT_LABELS: Partial<Record<keyof UnitStats, string>> = {
+  hp: "生命",
+  attack: "攻击",
+  magic: "魔力",
+  defense: "防御",
+  speed: "速度",
+  moveRange: "移动",
+};
+
+/** 装备属性加成 → 展示 VM（如 attack+4 → {label:"攻击", amount:4}）。 */
+function bonusVMs(bonus?: StatBonus[]): StatBonusVM[] | undefined {
+  if (!bonus?.length) return undefined;
+  return bonus.map((b) => ({ label: STAT_LABELS[b.stat] ?? b.stat, amount: b.amount }));
+}
 
 export interface CampaignDeps {
   registry: ContentRegistry;
@@ -86,8 +104,8 @@ export class CampaignDirector {
   private activeBattle: { battleNodeId: string; state: BattleState } | null = null;
   /** 胜利结算屏的静态部分（加点期间反复重渲染，故缓存）。 */
   private lastWin: { xpGained: number; levelUps: ResultLevelUpVM[]; itemsGained: ResultItemVM[] } | null = null;
-  /** 整备界面的返回目标（从标题或结算屏进入）。 */
-  private loadoutReturn: "title" | "result" = "title";
+  /** 整备界面的返回目标（从标题、结算屏或战斗中的「休整」进入）。 */
+  private loadoutReturn: "title" | "result" | "battle" = "title";
   /** 整备界面是否正在显示（决定加点后重渲染哪块屏）。 */
   private inLoadout = false;
 
@@ -101,7 +119,7 @@ export class CampaignDirector {
     const start = nodeById(this.deps.tables.story, this.deps.tables.story.startId);
     this.profile = this.deps.newSave().profile;
     this.nodeId = this.deps.tables.story.startId;
-    this.deps.host.showTitle(this.titleVM(start.kind === "title" ? start.title : "阵形之术", !!saved, start));
+    this.deps.host.showTitle(this.titleVM(start.kind === "title" ? start.title : "阵棋", !!saved, start));
   }
 
   newGame(): void {
@@ -168,7 +186,7 @@ export class CampaignDirector {
 
   // ---------- 整备界面 ----------
   /** 打开整备。从标题进入时若有存档则载入该档编辑（改动落到进行中的游戏）。 */
-  openLoadout(from: "title" | "result" = "title"): void {
+  openLoadout(from: "title" | "result" | "battle" = "title"): void {
     this.loadoutReturn = from;
     this.inLoadout = true;
     if (from === "title") {
@@ -181,11 +199,36 @@ export class CampaignDirector {
     this.deps.host.showLoadout(this.loadoutVM());
   }
 
-  /** 关闭整备，回到来源屏（结算/标题）。 */
+  /** 关闭整备，回到来源屏（结算/标题/战斗）。战斗中休整：把重算的属性回写进行中的战斗。 */
   closeLoadout(): void {
     this.inLoadout = false;
-    if (this.loadoutReturn === "result") this.showWinResult();
-    else this.boot();
+    if (this.loadoutReturn === "battle") {
+      this.deps.host.hideScreens();
+      this.deps.host.updateBattleUnitStats(this.playerStatPatches());
+    } else if (this.loadoutReturn === "result") {
+      this.showWinResult();
+    } else {
+      this.boot();
+    }
+  }
+
+  /** 按档案重算全部我方单位的最终属性（等级成长 + 加点 + 装备），与 buildBattleState 同一公式。 */
+  private playerStatPatches(): UnitStatPatch[] {
+    const patches: UnitStatPatch[] = [];
+    for (const up of this.profile.units) {
+      const def = this.tryUnit(up.defId);
+      if (!def) continue;
+      const stats = composeUnitStats(
+        def.stats,
+        up.defId,
+        up.level,
+        this.deps.tables.progression.growth,
+        up.allocated,
+        equipBonusesFor(up.equipped, this.deps.tables.items)
+      );
+      patches.push({ defId: up.defId, stats, maxHp: stats.hp });
+    }
+    return patches;
   }
 
   /** 给某单位装上背包里的一件装备（槽位由物品决定）。 */
@@ -240,22 +283,27 @@ export class CampaignDirector {
         return;
       case "battle": {
         const level = this.deps.levelOf(node.levelId);
+        // 新成员入队时按当前老兵平均等级补齐等级/属性（技能仍按该级自然解锁，保留成长空间）。
+        const bumped = levelUpNewcomers(this.profile, level, this.deps.tables.progression);
+        if (bumped !== this.profile) {
+          this.profile = bumped;
+          this.persist();
+        }
         const state = buildBattleState(this.profile, level, this.deps.registry, this.deps.tables);
         this.activeBattle = { battleNodeId: id, state };
         this.deps.host.hideScreens();
         const battleNodeId = id;
-        this.deps.host.startBattle(
-          state,
-          level,
-          (outcome, finalState) => this.onBattleEnd(battleNodeId, outcome, finalState),
-          (events, battleState) =>
+        this.deps.host.startBattle(state, level, {
+          onEnd: (outcome, finalState) => this.onBattleEnd(battleNodeId, outcome, finalState),
+          onEvents: (events, battleState) =>
             processCombatXp(events, battleState, this.profile, this.deps.registry, this.deps.tables),
-          this.battleConsumables(),
-          (itemId) => {
+          battleItems: this.battleConsumables(),
+          onItemConsumed: (itemId) => {
             this.profile = consumeItem(this.profile, itemId);
             this.persist();
-          }
-        );
+          },
+          onOpenLoadout: () => this.openLoadout("battle"),
+        });
         return;
       }
       case "ending":
@@ -342,7 +390,7 @@ export class CampaignDirector {
       buttons: [
         { id: "new", label: "新游戏", enabled: true },
         { id: "continue", label: "继续", enabled: hasSave },
-        { id: "loadout", label: "整备", enabled: true },
+        { id: "loadout", label: "队伍", enabled: true },
       ],
     };
   }
@@ -353,7 +401,7 @@ export class CampaignDirector {
       text: l.text,
       portrait: l.glyph ? this.portraitForGlyph(l.glyph, l.speaker) : undefined,
     }));
-    return { nodeId: node.id, lines, cursor: this.cursor, continueLabel: "继续 ▶" };
+    return { nodeId: node.id, lines, cursor: this.cursor, continueLabel: "点击任意位置继续" };
   }
 
   /** 用缓存的静态部分 + 实时加点面板重渲染胜利结算屏。 */
@@ -368,7 +416,7 @@ export class CampaignDirector {
       itemsGained: this.lastWin.itemsGained,
       allocations: this.allocationsVM(),
       primary: { id: "advance", label: "继续" },
-      secondary: { id: "loadout", label: "整备" },
+      secondary: { id: "loadout", label: "队伍" },
     };
     this.deps.host.showResult(vm);
   }
@@ -402,7 +450,7 @@ export class CampaignDirector {
         return {
           slot,
           label: SLOT_LABELS[slot],
-          item: it ? { itemId: it.id, name: it.name, description: it.description } : undefined,
+          item: it ? { itemId: it.id, name: it.name, description: it.description, bonuses: bonusVMs(it.bonus) } : undefined,
         };
       });
       // 属性预览含装备加成。
@@ -415,7 +463,7 @@ export class CampaignDirector {
     for (const st of inventoryStacks(this.profile)) {
       const def = items[st.itemId];
       if (!def) continue;
-      const vm: InventoryItemVM = { itemId: def.id, name: def.name, description: def.description, slot: def.slot, count: st.count };
+      const vm: InventoryItemVM = { itemId: def.id, name: def.name, description: def.description, slot: def.slot, bonuses: bonusVMs(def.bonus), count: st.count };
       if (isEquip(def)) equipInventory.push(vm);
       else consumables.push(vm);
     }
@@ -425,7 +473,11 @@ export class CampaignDirector {
       equipInventory,
       consumables,
       allocations: this.allocationsVM(),
-      back: { id: "back", label: this.loadoutReturn === "result" ? "返回结算" : "返回标题" },
+      back: {
+        id: "back",
+        label:
+          this.loadoutReturn === "battle" ? "返回战斗" : this.loadoutReturn === "result" ? "返回结算" : "返回标题",
+      },
     };
   }
 
@@ -444,7 +496,7 @@ export class CampaignDirector {
     return { glyph, faction: "player", name };
   }
 
-  private tryUnit(defId: string): { name: string } | undefined {
+  private tryUnit(defId: string): { name: string; stats: UnitStats } | undefined {
     try {
       return this.deps.registry.unit(defId);
     } catch {

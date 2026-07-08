@@ -1,7 +1,7 @@
 {
   "appid": "wx0000000000000000",
   "projectname": "project-formation",
-  "description": "阵形之术 — 微信小游戏构建（MVP 验证）",
+  "description": "阵棋 — 微信小游戏构建",
   "setting": {
     "es6": false,
     "minified": true

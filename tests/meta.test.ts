@@ -10,6 +10,7 @@ import {
   statsForLevel,
   applyLevelUps,
   allocatePoint,
+  levelUpNewcomers,
   unitProgress,
   serialize,
   deserialize,
@@ -136,10 +137,11 @@ describe("loadout：buildBattleState 复用 loadLevel + 按档案打补丁", () 
     const built = buildBattleState(save.profile, getLevel("level_001"), registry, tables);
     const baseline = loadLevel(getLevel("level_001"), registry);
 
-    const windBuilt = built.units.find((u) => u.defId === "wind_mage")!;
-    expect(windBuilt.skills).toEqual(["normal_attack", "gale_gather"]);
-    expect(windBuilt.hp).toBe(windBuilt.maxHp);
-    expect(windBuilt.hp).toBe(windBuilt.stats.hp);
+    // level_001 火法师单人出战。
+    const fireBuilt = built.units.find((u) => u.defId === "fire_mage")!;
+    expect(fireBuilt.skills).toEqual(["normal_attack", "cross_fire"]);
+    expect(fireBuilt.hp).toBe(fireBuilt.maxHp);
+    expect(fireBuilt.hp).toBe(fireBuilt.stats.hp);
 
     // 敌方单位 stats/skills 与基线深等
     const enemyBuilt = built.units.filter((u) => u.faction === "enemy").map((u) => ({ defId: u.defId, stats: u.stats, skills: u.skills }));
@@ -151,19 +153,18 @@ describe("loadout：buildBattleState 复用 loadLevel + 按档案打补丁", () 
 
   it("装备加成生效：疾风护符 +速度；活力宝石 +生命上限", () => {
     const save = initialSaveData();
-    const wind = unitProgress(save.profile, "wind_mage")!;
-    wind.equipped.accessory = "swift_charm";
-    const base = registry.unit("wind_mage").stats;
-    const built = buildBattleState(save.profile, getLevel("level_001"), registry, tables);
-    const windBuilt = built.units.find((u) => u.defId === "wind_mage")!;
-    expect(windBuilt.stats.speed).toBe(base.speed + 15);
-
     const fire = unitProgress(save.profile, "fire_mage")!;
+    const base = registry.unit("fire_mage").stats;
+    fire.equipped.accessory = "swift_charm";
+    const built = buildBattleState(save.profile, getLevel("level_001"), registry, tables);
+    const fireBuilt = built.units.find((u) => u.defId === "fire_mage")!;
+    expect(fireBuilt.stats.speed).toBe(base.speed + 15);
+
     fire.equipped.armor = "vitality_gem";
     const built2 = buildBattleState(save.profile, getLevel("level_001"), registry, tables);
-    const fireBuilt = built2.units.find((u) => u.defId === "fire_mage")!;
-    expect(fireBuilt.maxHp).toBe(registry.unit("fire_mage").stats.hp + 20);
-    expect(fireBuilt.hp).toBe(fireBuilt.maxHp);
+    const fireBuilt2 = built2.units.find((u) => u.defId === "fire_mage")!;
+    expect(fireBuilt2.maxHp).toBe(base.hp + 20);
+    expect(fireBuilt2.hp).toBe(fireBuilt2.maxHp);
   });
 
   it("不修改传入的 profile，也不污染 registry 的共享 def", () => {
@@ -196,15 +197,15 @@ describe("loadout：新机制装配", () => {
 
   it("玩家手动加点叠加在等级成长之上；skillLevels 注入战斗单位", () => {
     const save = initialSaveData();
-    const wind = unitProgress(save.profile, "wind_mage")!;
-    const base = registry.unit("wind_mage").stats;
-    wind.allocated = { attack: 5 };
-    wind.skillLevels = { normal_attack: 3 };
+    const fire = unitProgress(save.profile, "fire_mage")!;
+    const base = registry.unit("fire_mage").stats;
+    fire.allocated = { attack: 5 };
+    fire.skillLevels = { normal_attack: 3 };
     const built = buildBattleState(save.profile, getLevel("level_001"), registry, tables);
-    const windBuilt = built.units.find((u) => u.defId === "wind_mage")!;
-    expect(windBuilt.stats.attack).toBe(base.attack + 5); // 1 级成长为 0，仅加点
-    expect(windBuilt.skillLevels.normal_attack).toBe(3);
-    expect(windBuilt.level).toBe(1);
+    const fireBuilt = built.units.find((u) => u.defId === "fire_mage")!;
+    expect(fireBuilt.stats.attack).toBe(base.attack + 5); // 1 级成长为 0，仅加点
+    expect(fireBuilt.skillLevels.normal_attack).toBe(3);
+    expect(fireBuilt.level).toBe(1);
   });
 });
 
@@ -228,40 +229,67 @@ describe("奖励结算（确定性胜利态）", () => {
     for (const defId of survivors) expect(rewards.xpByDefId[defId]).toBe(120);
   });
 
-  it("applyRewards 端到端：wind_mage 升 2 级 + 解锁 push_wave + swift_charm 入背包", () => {
+  it("applyRewards 端到端：wind_mage 升 2 级 + 解锁 push_wave + 掉落入背包", () => {
     const save = initialSaveData();
-    const final = wonState(save.profile, "level_001");
-    const rewards = computeRewards(getLevel("level_001"), final, tables.levelRewards);
+    // 第二关火法师 + 风术士出战，胜利后风术士升级解锁 push_wave。
+    const final = wonState(save.profile, "level_002");
+    const rewards = computeRewards(getLevel("level_002"), final, tables.levelRewards);
     const { profile, levelUps } = applyRewards(save.profile, rewards, final, tables);
 
     const wind = unitProgress(profile, "wind_mage")!;
     expect(wind.level).toBe(2);
     expect(wind.learnedSkills).toContain("push_wave");
-    expect(profile.inventory).toContain("swift_charm");
+    expect(profile.inventory).toContain("oak_staff");
     expect(levelUps.length).toBeGreaterThan(0);
     expect(unitProgress(save.profile, "wind_mage")!.level).toBe(1); // 不改入参
   });
 });
 
-describe("两场可观测：新技能 + 装备在第二场生效", () => {
-  it("打完第一关、装备掉落后，第二关 wind_mage 拥有 push_wave 且速度更高", () => {
+describe("两场可观测：新技能 + 装备在下一场生效", () => {
+  it("打完第二关、装备掉落后，第三关 wind_mage 拥有 push_wave 且速度更高", () => {
     const save = initialSaveData();
-    const final = wonState(save.profile, "level_001");
-    const rewards = computeRewards(getLevel("level_001"), final, tables.levelRewards);
+    const final = wonState(save.profile, "level_002");
+    const rewards = computeRewards(getLevel("level_002"), final, tables.levelRewards);
     const { profile: profile2 } = applyRewards(save.profile, rewards, final, tables);
-    unitProgress(profile2, "wind_mage")!.equipped.accessory = "swift_charm"; // 装备掉落的疾风护符
+    unitProgress(profile2, "wind_mage")!.equipped.accessory = "swift_charm"; // 装备疾风护符
 
-    const built2 = buildBattleState(profile2, getLevel("level_002"), registry, tables);
-    const windBuilt = built2.units.find((u) => u.defId === "wind_mage")!;
+    const built3 = buildBattleState(profile2, getLevel("level_003"), registry, tables);
+    const windBuilt = built3.units.find((u) => u.defId === "wind_mage")!;
     expect(windBuilt.skills).toContain("push_wave");
     expect(windBuilt.stats.speed).toBeGreaterThan(registry.unit("wind_mage").stats.speed);
+  });
+});
+
+describe("新成员入队按平均等级补齐（技能自然解锁、留成长空间）", () => {
+  it("冰法师入队被拉到老兵平均级，解锁至该级、高级技能仍锁", () => {
+    const save = initialSaveData();
+    const curve = tables.progression.xpCurve;
+    // 老兵：火法师 5 级、风术士 3 级；冰法师仍是未出战的 1 级。
+    const fire = unitProgress(save.profile, "fire_mage")!;
+    Object.assign(fire, applyLevelUps(gainXp(fire, curve.xpToReach[5]), tables.progression).progress);
+    const wind = unitProgress(save.profile, "wind_mage")!;
+    Object.assign(wind, applyLevelUps(gainXp(wind, curve.xpToReach[3]), tables.progression).progress);
+
+    const bumped = levelUpNewcomers(save.profile, getLevel("level_005"), tables.progression);
+    const ice = unitProgress(bumped, "ice_mage")!;
+    expect(ice.level).toBe(4); // round((5+3)/2)=4
+    expect(ice.learnedSkills).toContain("freeze"); // freeze@3 ≤ 4，自然解锁
+    expect(ice.learnedSkills).not.toContain("blizzard"); // blizzard@6 仍锁 → 成长空间
+    expect(ice.learnedSkills).not.toContain("frost_nova"); // frost_nova@10 仍锁
+    expect(ice.unspentPoints).toBe((4 - 1) * tables.progression.pointsPerLevel);
+    expect(unitProgress(save.profile, "ice_mage")!.level).toBe(1); // 不改入参
+  });
+
+  it("首关无老兵（无 xp>0 单位）时不补偿", () => {
+    const save = initialSaveData();
+    expect(levelUpNewcomers(save.profile, getLevel("level_001"), tables.progression)).toBe(save.profile);
   });
 });
 
 describe("剧情发展树", () => {
   it("线性推进直达结局", () => {
     const graph = tables.story;
-    expect(advance(graph, "n_title")).toBe("n_cut_intro");
+    expect(advance(graph, "n_title")).toBe("n_cut_1");
     let id: string | null = graph.startId;
     const seen: string[] = [];
     let guard = 0;

@@ -37,6 +37,27 @@
     ]
   },
   {
+    "id": "diamond_5x5",
+    "name": "五格菱形",
+    "anchor": "target",
+    "rotatable": false,
+    "cells": [
+      { "dx": 0, "dy": 0, "effectKey": "all" },
+      { "dx": 1, "dy": 0, "effectKey": "all" },
+      { "dx": -1, "dy": 0, "effectKey": "all" },
+      { "dx": 0, "dy": 1, "effectKey": "all" },
+      { "dx": 0, "dy": -1, "effectKey": "all" },
+      { "dx": 2, "dy": 0, "effectKey": "all" },
+      { "dx": -2, "dy": 0, "effectKey": "all" },
+      { "dx": 0, "dy": 2, "effectKey": "all" },
+      { "dx": 0, "dy": -2, "effectKey": "all" },
+      { "dx": 1, "dy": 1, "effectKey": "all" },
+      { "dx": 1, "dy": -1, "effectKey": "all" },
+      { "dx": -1, "dy": 1, "effectKey": "all" },
+      { "dx": -1, "dy": -1, "effectKey": "all" }
+    ]
+  },
+  {
     "id": "line_4",
     "name": "贯穿直线",
     "anchor": "caster_direction",

@@ -36,12 +36,12 @@ class UnitSprite {
     this.glow.blendMode = "add";
     this.glow.visible = false;
 
-    // 阴影(贴合等距菱形,压扁加宽)
+    // 阴影(贴合等距菱形,压扁加宽;上收进格内,紧贴立绘脚下)
     const shadow = new Graphics();
-    shadow.ellipse(0, 20, 28, 11).fill({ color: 0x000000, alpha: 0.42 });
+    shadow.ellipse(0, 8, 26, 10).fill({ color: 0x000000, alpha: 0.42 });
 
     this.statuses.anchor.set(0.5);
-    this.statuses.position.set(0, -42);
+    this.statuses.position.set(0, -62);
 
     this.container.addChild(this.glow, shadow, this.sprite, this.face, this.hp, this.statuses);
     this.redraw(unit);
@@ -74,7 +74,7 @@ class UnitSprite {
   setHp(now: number): void {
     const ratio = this.maxHp > 0 ? Math.max(0, Math.min(1, now / this.maxHp)) : 0;
     const w = 40;
-    const y = 30;
+    const y = -50; // 头顶上方
     const g = this.hp;
     g.clear();
     g.roundRect(-w / 2, y, w, 6, 3).fill({ color: 0x11141b, alpha: 0.85 });

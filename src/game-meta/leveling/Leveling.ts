@@ -2,8 +2,8 @@
  * 等级体系：纯函数。经验曲线 + 每级属性成长 + 技能解锁表。
  * 所有函数返回新对象，不修改入参。
  */
-import { UnitStats } from "@core/index";
-import { UnitProgress, cloneUnitProgress } from "../profile/Profile";
+import { UnitStats, LevelDef } from "@core/index";
+import { UnitProgress, cloneUnitProgress, PlayerProfile } from "../profile/Profile";
 
 /** xpToReach[L] = 「成为 L 级」所需累计总经验；index 0 占位，level 1 = 0。 */
 export interface XpCurve {
@@ -138,4 +138,35 @@ export function allocatePoint(up: UnitProgress, stat: keyof UnitStats): UnitProg
   next.allocated[stat] = (next.allocated[stat] ?? 0) + 1;
   next.unspentPoints -= 1;
   return next;
+}
+
+/**
+ * 新成员入队补偿：关卡出场的玩家单位若仍是「未出战的 1 级」（level===1 && xp===0），
+ * 且队伍中已有出战过的老兵，则把它拉到老兵的平均等级——按经验曲线设定 xp 后跑 applyLevelUps，
+ * 得到该等级应有的属性、加点与「自然解锁」的技能。
+ *
+ * 关键：只做「自然解锁」——applyLevelUps 从 1 级推到平均级，仅解锁 level≤平均级的技能，
+ * 高级技能（解锁级高于平均级）仍锁着，保留成长空间；且不跳级跳过任何解锁，避免技能永久丢失。
+ * 纯函数：返回新 profile，不改入参；无需补偿时返回同一引用。
+ */
+export function levelUpNewcomers(
+  profile: PlayerProfile,
+  level: LevelDef,
+  tables: ProgressionTables
+): PlayerProfile {
+  const veterans = profile.units.filter((u) => u.xp > 0);
+  if (veterans.length === 0) return profile;
+  const avg = Math.max(1, Math.round(veterans.reduce((s, u) => s + u.level, 0) / veterans.length));
+  if (avg <= 1) return profile;
+
+  const joining = new Set(level.playerUnits.map((p) => p.unitId));
+  let changed = false;
+  const units = profile.units.map((u) => {
+    const fresh = u.level === 1 && u.xp === 0;
+    if (!fresh || !joining.has(u.defId)) return u;
+    changed = true;
+    const seeded = gainXp(u, tables.xpCurve.xpToReach[avg] ?? u.xp);
+    return applyLevelUps(seeded, tables).progress;
+  });
+  return changed ? { ...profile, units } : profile;
 }

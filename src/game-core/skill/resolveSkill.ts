@@ -191,6 +191,8 @@ export function resolveSkillEffects(
   }
   const hits = [...hitMap.values()];
   const displaced = new Set<string>();
+  // 被 pull_to_center 实际移动过的单位（用于 gather_damage 分档伤害）。
+  const gatherMoved = new Set<string>();
   const alreadyDead = new Set<string>(state.units.filter((u) => u.hp <= 0).map((u) => u.instanceId));
 
   // 2) 位移阶段
@@ -208,8 +210,11 @@ export function resolveSkillEffects(
     .sort((a, b) => manhattan(a.unit.pos, targeting.targetCell) - manhattan(b.unit.pos, targeting.targetCell));
   for (const h of gatherUnits) {
     const op = h.ops.find((o) => o.type === "pull_to_center") as Extract<EffectOp, { type: "pull_to_center" }>;
-    const r = applyPullToCenter(state, h.unit, targeting.targetCell, op.maxDistance, events);
-    if (r.moved > 0) displaced.add(h.unit.instanceId);
+    const r = applyPullToCenter(state, h.unit, targeting.targetCell, op.maxDistance, events, op.stopRadius ?? 0);
+    if (r.moved > 0) {
+      displaced.add(h.unit.instanceId);
+      gatherMoved.add(h.unit.instanceId);
+    }
   }
 
   // 2c) 逐个位移：push / pull / knockback / swap（按到施法者距离排序保证可预测）
@@ -246,6 +251,9 @@ export function resolveSkillEffects(
     for (const op of h.ops) {
       if (op.type === "damage") {
         dealDamage(state, h.unit, computeDamage(caster, h.unit, op.element, op.multiplier, powerMult), `skill:${skill.id}`, events);
+      } else if (op.type === "gather_damage") {
+        const mult = gatherMoved.has(h.unit.instanceId) ? op.movedMultiplier : op.stayedMultiplier;
+        dealDamage(state, h.unit, computeDamage(caster, h.unit, op.element, mult, powerMult), `skill:${skill.id}`, events);
       } else if (op.type === "heal") {
         heal(state, h.unit, Math.round(caster.stats.magic * op.multiplier * powerMult), events);
       }
