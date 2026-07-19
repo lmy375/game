@@ -2,7 +2,7 @@
  * 流程编排层公共类型：屏幕 ViewModel（纯数据）与 CampaignHost（表现层实现的呈现钩子）。
  * 引擎无关：只认识 game-core / game-meta 的数据，不认识 DOM / 引擎。镜像 interaction 的 ViewModel/Host 形状。
  */
-import { BattleState, BattleEvent, LevelDef, UnitStats } from "@core/index";
+import { BattleState, LevelDef, UnitStats } from "@core/index";
 import { EquipSlot } from "@meta/index";
 import { BattleItem, UnitStatPatch } from "../interaction";
 
@@ -37,43 +37,24 @@ export interface CutsceneVM {
   skipLabel: string;
 }
 
-export interface ResultLevelUpVM {
-  portrait: PortraitVM;
-  name: string;
-  fromLevel: number;
-  toLevel: number;
-  unlockedSkills: string[];
-}
-
 export interface ResultItemVM {
   name: string;
   description: string;
+  /** 技能道具被自动装备时：接收单位的名字（供结算屏标注「已装备给 ×××」）。 */
+  equippedTo?: string;
 }
 
-/** 单条可加点属性（展示当前值 + 加点按钮）。 */
+/** 单条属性的展示行（整备界面属性预览）。 */
 export interface StatRowVM {
   key: keyof UnitStats;
   label: string;
   value: number;
 }
 
-/** 一个单位的加点面板（仅在该单位有未分配点数时出现）。 */
-export interface StatAllocationVM {
-  defId: string;
-  name: string;
-  portrait: PortraitVM;
-  unspentPoints: number;
-  stats: StatRowVM[];
-}
-
 export interface ResultVM {
   win: boolean;
   title: string;
-  xpGained: number;
-  levelUps: ResultLevelUpVM[];
   itemsGained: ResultItemVM[];
-  /** 有未分配属性点的单位加点面板（无则省略）。 */
-  allocations?: StatAllocationVM[];
   /** 胜利=继续推进；失败=重试本战。 */
   primary: { id: "advance" | "retry"; label: string };
   /** 次要按钮：进入整备界面（仅胜利时提供）。 */
@@ -88,15 +69,17 @@ export interface StatBonusVM {
   amount: number;
 }
 
-/** 背包中一件物品的展示（装备与消耗品通用）。 */
+/** 背包中一件物品的展示（装备/技能道具/消耗品通用）。 */
 export interface InventoryItemVM {
   itemId: string;
   name: string;
   description: string;
-  /** 装备槽位（消耗品为 undefined）。 */
+  /** 装备槽位（非装备为 undefined）。 */
   slot?: EquipSlot;
-  /** 装备的属性加成（消耗品为 undefined）。 */
+  /** 装备的属性加成（非装备为 undefined）。 */
   bonuses?: StatBonusVM[];
+  /** 技能道具的可装备单位 defId 列表（非技能道具为 undefined，供整备界面按单位过滤）。 */
+  usableBy?: string[];
   count: number;
 }
 
@@ -108,12 +91,21 @@ export interface LoadoutSlotVM {
   item?: { itemId: string; name: string; description: string; bonuses?: StatBonusVM[] };
 }
 
+/** 单位技能栏一格的展示。 */
+export interface SkillSlotVM {
+  index: number;
+  /** 已装入的技能道具（空格为 undefined）。 */
+  item?: { itemId: string; name: string; description: string };
+}
+
 /** 整备界面里一个单位的面板。 */
 export interface LoadoutUnitVM {
   defId: string;
   name: string;
   portrait: PortraitVM;
   slots: LoadoutSlotVM[];
+  /** 技能栏（固定 SKILL_SLOT_COUNT 格）。 */
+  skillSlots: SkillSlotVM[];
   /** 属性预览（含装备加成）。 */
   stats: StatRowVM[];
 }
@@ -122,10 +114,10 @@ export interface LoadoutVM {
   units: LoadoutUnitVM[];
   /** 背包中的装备（可穿）。 */
   equipInventory: InventoryItemVM[];
+  /** 背包中的技能道具（可装入技能栏）。 */
+  skillInventory: InventoryItemVM[];
   /** 背包中的消耗品（只读展示，战斗中使用）。 */
   consumables: InventoryItemVM[];
-  /** 有未分配属性点的单位加点面板（无则省略）——让攒下的点数随时可分配。 */
-  allocations?: StatAllocationVM[];
   back: { id: "back"; label: string };
 }
 
@@ -141,12 +133,11 @@ export interface EndingVM {
  */
 /**
  * startBattle 的战斗钩子（表现层原样转交给交互层 BattleSessionHooks）。
- * onEnd=分出胜负回调；onEvents=战斗内养成（经验/升级）；battleItems/onItemConsumed=消耗品池与扣减；
+ * onEnd=分出胜负回调；battleItems/onItemConsumed=消耗品池与扣减；
  * onOpenLoadout=战斗中点「休整」时打开整备界面。
  */
 export interface CampaignBattleHooks {
   onEnd(outcome: BattleState["outcome"], finalState: BattleState): void;
-  onEvents(events: BattleEvent[], state: BattleState): BattleEvent[];
   battleItems: BattleItem[];
   onItemConsumed(itemId: string): void;
   onOpenLoadout(): void;

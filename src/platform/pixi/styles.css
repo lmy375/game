@@ -32,6 +32,22 @@ h1 { font-size: 20px; font-weight: 700; }
 h1 small { color: var(--muted); font-size: 12px; font-weight: 400; }
 .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .toolbar label { color: var(--muted); font-size: 13px; }
+
+/* 调试滑块开关 */
+.debug-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; user-select: none; }
+.debug-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.dt-track {
+  width: 34px; height: 18px; border-radius: 999px; position: relative;
+  background: var(--panel2); border: 1px solid var(--line);
+  transition: background .15s, border-color .15s;
+}
+.dt-thumb {
+  position: absolute; top: 1px; left: 1px; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--muted); transition: left .15s, background .15s;
+}
+.debug-toggle input:checked + .dt-track { background: rgba(255, 224, 102, .22); border-color: var(--accent); }
+.debug-toggle input:checked + .dt-track .dt-thumb { left: 17px; background: var(--accent); }
+.debug-toggle:hover .dt-track { border-color: var(--accent); }
 select, button {
   background: var(--panel2); color: var(--text); border: 1px solid var(--line);
   border-radius: 8px; padding: 7px 12px; font-size: 14px; cursor: pointer;
@@ -150,6 +166,9 @@ body.screen-active header,
 body.screen-active .hint,
 body.screen-active .side,
 body.screen-active footer { visibility: hidden; }
+/* 调试开关与选关下拉例外：任何屏幕可见（visibility 可被子元素显式恢复），压在全屏遮罩（z-index:100）之上。 */
+body.screen-active #debug-toggle-wrap,
+body.screen-active #level-select-wrap { visibility: visible; position: relative; z-index: 110; }
 .screen {
   text-align: center; max-width: 560px; width: calc(100% - 48px);
   max-height: calc(100dvh - 40px); overflow-y: auto;
@@ -269,14 +288,6 @@ body.screen-active footer { visibility: hidden; }
 .screen.result-screen { display: flex; flex-direction: column; padding: 24px 24px 20px; max-width: 600px; }
 .result-head { flex: 0 0 auto; padding-bottom: 4px; }
 .result-screen h1 { margin-bottom: 0; }
-.result-xp {
-  display: inline-flex; align-items: baseline; gap: 8px; margin-top: 12px;
-  padding: 6px 18px; border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255,224,102,.16), rgba(255,224,102,.06));
-  border: 1px solid rgba(255,224,102,.32);
-}
-.result-xp-label { font-size: 12px; color: var(--muted); letter-spacing: .5px; }
-.result-xp-val { font-size: 20px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; text-shadow: 0 0 16px rgba(255,224,102,.4); }
 
 /* 可滚动主体 */
 .result-scroll {
@@ -292,7 +303,7 @@ body.screen-active footer { visibility: hidden; }
 }
 .result-list { display: flex; flex-direction: column; gap: 8px; }
 
-/* 奖励卡片（升级 / 战利品共用） */
+/* 战利品卡片 */
 .result-card {
   display: flex; align-items: center; gap: 12px;
   background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
@@ -301,50 +312,20 @@ body.screen-active footer { visibility: hidden; }
 .result-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .result-card-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 15px; font-weight: 700; }
 .result-card-sub { font-size: 13px; color: var(--muted); line-height: 1.4; }
-.lvl-badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 12px; font-weight: 700; color: #4ad991;
-  background: rgba(74,217,145,.12); border: 1px solid rgba(74,217,145,.28);
-  border-radius: 6px; padding: 2px 8px; font-variant-numeric: tabular-nums;
-}
-.lvl-badge i { font-style: normal; opacity: .7; }
 .loot-card .loot-icon {
   flex: 0 0 auto; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
   font-size: 22px; background: rgba(255,210,74,.10); border: 1px solid rgba(255,210,74,.24); border-radius: 10px;
 }
 .loot-name { color: #ffd24a; }
-
-/* 加点面板 */
-.alloc-grid { display: flex; flex-direction: column; gap: 12px; }
-.alloc-panel { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
-.alloc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.alloc-head .portrait { width: 40px; height: 40px; font-size: 18px; border-radius: 9px; border-width: 1px; }
-.alloc-name { font-size: 15px; font-weight: 700; }
-.alloc-points-badge {
-  margin-left: auto; font-size: 12px; color: var(--muted);
-  background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px;
+/* 技能秘卷自动装备去向徽标 */
+.loot-equipped {
+  display: inline-flex; align-items: center;
+  font-size: 12px; font-weight: 700; color: #4ad991;
+  background: rgba(74,217,145,.12); border: 1px solid rgba(74,217,145,.28);
+  border-radius: 6px; padding: 2px 8px;
 }
-.alloc-points-badge b { font-variant-numeric: tabular-nums; }
-.alloc-points-badge.has-points { color: #1a1d24; background: var(--accent); border-color: var(--accent); font-weight: 700; }
-.alloc-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
-.alloc-stat {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 5px 5px 12px;
-}
-.alloc-label { flex: 1; font-size: 13px; color: var(--muted); }
-.alloc-value { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.alloc-btn {
-  flex: 0 0 auto; width: 28px; height: 28px; padding: 0; line-height: 1;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 18px; font-weight: 700; border-radius: 7px;
-  border: 1px solid rgba(255,224,102,.4); background: rgba(255,224,102,.14); color: var(--accent);
-}
-.alloc-btn:hover:not(:disabled) { background: rgba(255,224,102,.28); border-color: var(--accent); }
-.alloc-btn:disabled { opacity: .3; border-color: var(--line); background: var(--panel2); color: var(--muted); }
 
 .result-screen .btn-row { flex: 0 0 auto; margin-top: 16px; padding-top: 4px; }
-/* 整备屏复用加点面板：与上方装备槽留出间距 */
-.lo-unit-detail .alloc-body { margin-top: 14px; }
 .ending-body { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
 .ending-line { font-size: 15px; line-height: 1.6; color: var(--text); }
 
@@ -395,6 +376,12 @@ body.screen-active footer { visibility: hidden; }
 .lo-unequip { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; line-height: 1;
   border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--muted); cursor: pointer; font-size: 11px; padding: 0; }
 .lo-unequip:hover { border-color: #e6643c; color: #e6643c; }
+
+/* 技能栏：五格，已装格用紫色系与装备槽区分 */
+.lo-skillslots { margin-top: 4px; }
+.lo-skillslot { flex: 1 1 96px; }
+.lo-skillslot.filled { border-color: #9a6ad9; }
+.lo-skillslot.filled b { color: #c9a6f0; }
 
 /* 属性:每属性一行 */
 .lo-statlist { display: flex; flex-direction: column; gap: 3px; min-width: 150px; }

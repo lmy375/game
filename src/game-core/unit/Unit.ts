@@ -59,12 +59,6 @@ export interface Unit {
   cooldowns: Record<string, number>;
   /** 行动充能值（charge time）。达到阈值即可行动，行动后扣除阈值。 */
   ct: number;
-  /** 当前等级（出战由档案/关卡 enemyLevel 注入；战斗内击杀升级会就地提升）。 */
-  level: number;
-  /** 累计总经验（战斗内击杀累加，战后回填档案）。 */
-  xp: number;
-  /** 每个技能的等级（默认视为 1；缺省即 1）。影响伤害/治疗倍率。 */
-  skillLevels: Record<string, number>;
   aiProfile?: "melee" | "ranged" | "tank";
 }
 
@@ -85,9 +79,6 @@ export function cloneUnit(u: Unit): Unit {
     actedThisTurn: u.actedThisTurn,
     cooldowns: { ...u.cooldowns },
     ct: u.ct,
-    level: u.level,
-    xp: u.xp,
-    skillLevels: { ...u.skillLevels },
     aiProfile: u.aiProfile,
   };
 }

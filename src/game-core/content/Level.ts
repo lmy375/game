@@ -4,7 +4,7 @@
 import { GridBoard } from "../board/GridBoard";
 import { TerrainType } from "../board/terrain";
 import { BattleState } from "../state/BattleState";
-import { Unit } from "../unit/Unit";
+import { Unit, UnitStats } from "../unit/Unit";
 import { ContentRegistry } from "./Registry";
 import { CT_THRESHOLD, initInitiative } from "../turn/turn";
 
@@ -29,8 +29,8 @@ export interface LevelDef {
   };
   playerUnits: LevelUnitPlacement[];
   enemyUnits: LevelUnitPlacement[];
-  /** 敌方等级：按 enemyGrowth 缩放敌人属性（缺省=1，不缩放）。体现「敌人随进度成长」。 */
-  enemyLevel?: number;
+  /** 本关敌方属性覆盖（按 defId 覆盖部分字段，烘焙固定难度曲线）。缺省=units.json 基础值。 */
+  enemyStatOverrides?: Record<string, Partial<UnitStats>>;
   winCondition: { type: "defeat_all_enemies" };
 }
 
@@ -40,6 +40,9 @@ export function loadLevel(level: LevelDef, registry: ContentRegistry): BattleSta
 
   const place = (p: LevelUnitPlacement, idx: number) => {
     const def = registry.unit(p.unitId);
+    // 敌方按关卡覆盖表烘焙固定属性（玩家属性由装备系统在装配层决定）。
+    const stats: UnitStats =
+      def.faction === "enemy" ? { ...def.stats, ...level.enemyStatOverrides?.[def.id] } : { ...def.stats };
     const unit: Unit = {
       instanceId: `${def.faction === "player" ? "p" : "e"}_${def.id}_${idx}`,
       defId: def.id,
@@ -47,18 +50,15 @@ export function loadLevel(level: LevelDef, registry: ContentRegistry): BattleSta
       faction: def.faction,
       pos: { x: p.x, y: p.y },
       facing: def.faction === "player" ? "right" : "left",
-      hp: def.stats.hp,
-      maxHp: def.stats.hp,
-      stats: { ...def.stats },
+      hp: stats.hp,
+      maxHp: stats.hp,
+      stats,
       skills: [...def.skills],
       statuses: [],
       movedThisTurn: false,
       actedThisTurn: false,
       cooldowns: {},
       ct: 0,
-      level: 1,
-      xp: 0,
-      skillLevels: {},
       aiProfile: def.aiProfile,
     };
     units.push(unit);

@@ -69,11 +69,6 @@ export interface BattleSessionHooks {
   buildState?: (level: LevelDef) => BattleState;
   /** 战斗分出胜负时回调一次（带最终状态）。提供后，结算 UX 交由调用方（如战役结算屏）。 */
   onEnd?: (outcome: BattleState["outcome"], finalState: BattleState) => void;
-  /**
-   * 每次 simulate 后处理事件（如战斗内经验/升级）。可就地改 state 并返回追加事件，
-   * 追加事件会并入日志与呈现。不传 = 无战斗内养成。引擎无关：只见 BattleEvent。
-   */
-  onEvents?: (events: BattleEvent[], state: BattleState) => BattleEvent[];
   /** 本场可用的消耗品池（从玩家背包装配）。不传/空 = 无道具，道具菜单隐藏。 */
   battleItems?: BattleItem[];
   /** 使用掉一件消耗品时回调（供战役从背包扣减并存档）。 */
@@ -379,7 +374,7 @@ export class BattleSession {
   }
 
   /**
-   * 应用整备后的属性补丁（等级成长+加点+装备重算）：按 defId 改我方存活单位，
+   * 应用整备后的属性补丁（基础值+装备重算）：按 defId 改我方存活单位，
    * 保持已受伤害不变（最低留 1 血，卸装不致死）；暂定移动的回退基态同步打补丁，
    * 否则「休整后撤销移动」会把属性一并回滚。
    */
@@ -480,17 +475,9 @@ export class BattleSession {
       return false;
     }
     this.state = res.nextState;
-    const events = this.withProgression(res.events);
-    this.logEvents(events);
-    await this.present(events, { kind });
+    this.logEvents(res.events);
+    await this.present(res.events, { kind });
     return true;
-  }
-
-  /** 应用战斗内养成钩子（如击杀升级）：就地改 state，返回「原事件 + 追加事件」。 */
-  private withProgression(events: BattleEvent[]): BattleEvent[] {
-    if (!this.hooks.onEvents) return events;
-    const extra = this.hooks.onEvents(events, this.state) ?? [];
-    return extra.length ? [...events, ...extra] : events;
   }
 
   /**
@@ -560,10 +547,9 @@ export class BattleSession {
         const res = this.sim.simulate(this.state, act);
         if (res.ok) {
           this.state = res.nextState;
-          const events = this.withProgression(res.events);
-          this.logEvents(events);
+          this.logEvents(res.events);
           if (act.type !== "end_turn") {
-            await this.host.applyEvents(events, { kind: "ai" }, this.state);
+            await this.host.applyEvents(res.events, { kind: "ai" }, this.state);
           }
         }
         this.aiTelegraph = null;
@@ -879,7 +865,6 @@ export class BattleSession {
       speed: u.stats.speed,
       hp: Math.max(0, u.hp),
       maxHp: u.maxHp,
-      level: u.level,
     });
     return {
       order,
@@ -902,11 +887,6 @@ export class BattleSession {
         this.log(`🧪 ${u?.name ?? e.userId} 使用了「${name}」`);
       }
       if (e.type === "battle_ended") this.log(e.outcome === "player_win" ? "🎉 我方胜利" : "💀 我方战败");
-      if (e.type === "unit_level_up") {
-        const u = unitById(this.state, e.unitId);
-        const skills = e.unlockedSkills.length ? `，习得「${e.unlockedSkills.join("、")}」` : "";
-        this.log(`⬆ ${u?.name ?? e.unitId} 升级 Lv.${e.fromLevel} → Lv.${e.toLevel}${skills}`);
-      }
     }
   }
   private log(msg: string): void {

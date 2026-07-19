@@ -20,7 +20,6 @@
         { "x": 7, "y": 7, "terrain": "wall" }
       ]
     },
-    "enemyLevel": 1,
     "playerUnits": [
       { "unitId": "fire_mage", "x": 1, "y": 4 }
     ],
@@ -52,7 +51,6 @@
         { "x": 8, "y": 7, "terrain": "wall" }
       ]
     },
-    "enemyLevel": 2,
     "playerUnits": [
       { "unitId": "wind_mage", "x": 1, "y": 5 },
       { "unitId": "fire_mage", "x": 1, "y": 3 }
@@ -93,7 +91,6 @@
         { "x": 9, "y": 7, "terrain": "wall" }
       ]
     },
-    "enemyLevel": 2,
     "playerUnits": [
       { "unitId": "lancer", "x": 1, "y": 3 },
       { "unitId": "wind_mage", "x": 1, "y": 4 },
@@ -130,7 +127,11 @@
         { "x": 9, "y": 9, "terrain": "wall" }
       ]
     },
-    "enemyLevel": 3,
+    "enemyStatOverrides": {
+      "enemy_soldier": { "hp": 88, "attack": 20, "defense": 7 },
+      "enemy_archer": { "hp": 60, "attack": 18, "speed": 71 },
+      "enemy_heavy": { "hp": 154, "attack": 24, "defense": 14 }
+    },
     "playerUnits": [
       { "unitId": "fire_mage", "x": 1, "y": 2 },
       { "unitId": "wind_mage", "x": 1, "y": 4 },
@@ -168,7 +169,11 @@
         { "x": 8, "y": 9, "terrain": "wall" }
       ]
     },
-    "enemyLevel": 3,
+    "enemyStatOverrides": {
+      "enemy_soldier": { "hp": 88, "attack": 20, "defense": 7 },
+      "enemy_archer": { "hp": 60, "attack": 18, "speed": 71 },
+      "enemy_heavy": { "hp": 154, "attack": 24, "defense": 14 }
+    },
     "playerUnits": [
       { "unitId": "lancer", "x": 1, "y": 3 },
       { "unitId": "swordsman", "x": 1, "y": 4 },
@@ -206,7 +211,11 @@
         { "x": 10, "y": 9, "terrain": "wall" }
       ]
     },
-    "enemyLevel": 4,
+    "enemyStatOverrides": {
+      "enemy_soldier": { "hp": 88, "attack": 20, "defense": 7 },
+      "enemy_archer": { "hp": 60, "attack": 18, "speed": 71 },
+      "enemy_heavy": { "hp": 154, "attack": 24, "defense": 14 }
+    },
     "playerUnits": [
       { "unitId": "fire_mage", "x": 1, "y": 3 },
       { "unitId": "swordsman", "x": 1, "y": 4 },
@@ -247,7 +256,11 @@
         { "x": 10, "y": 10, "terrain": "wall" }
       ]
     },
-    "enemyLevel": 5,
+    "enemyStatOverrides": {
+      "enemy_soldier": { "hp": 88, "attack": 20, "defense": 7 },
+      "enemy_archer": { "hp": 60, "attack": 18, "speed": 71 },
+      "enemy_heavy": { "hp": 154, "attack": 24, "defense": 14 }
+    },
     "playerUnits": [
       { "unitId": "fire_mage", "x": 1, "y": 3 },
       { "unitId": "ice_mage", "x": 1, "y": 4 },
@@ -288,7 +301,11 @@
         { "x": 11, "y": 9, "terrain": "wall" }
       ]
     },
-    "enemyLevel": 6,
+    "enemyStatOverrides": {
+      "enemy_soldier": { "hp": 96, "attack": 22, "defense": 8 },
+      "enemy_archer": { "hp": 65, "attack": 20, "speed": 72 },
+      "enemy_heavy": { "hp": 168, "attack": 26, "defense": 16 }
+    },
     "playerUnits": [
       { "unitId": "fire_mage", "x": 1, "y": 3 },
       { "unitId": "swordsman", "x": 2, "y": 4 },
@@ -324,7 +341,11 @@
         { "x": 11, "y": 10, "terrain": "wall" }
       ]
     },
-    "enemyLevel": 7,
+    "enemyStatOverrides": {
+      "enemy_soldier": { "hp": 96, "attack": 22, "defense": 8 },
+      "enemy_archer": { "hp": 65, "attack": 20, "speed": 72 },
+      "enemy_heavy": { "hp": 168, "attack": 26, "defense": 16 }
+    },
     "playerUnits": [
       { "unitId": "swordsman", "x": 5, "y": 4 },
       { "unitId": "wind_mage", "x": 4, "y": 5 },
@@ -366,7 +387,11 @@
         { "x": 11, "y": 11, "terrain": "wall" }
       ]
     },
-    "enemyLevel": 8,
+    "enemyStatOverrides": {
+      "enemy_soldier": { "hp": 96, "attack": 22, "defense": 8 },
+      "enemy_archer": { "hp": 65, "attack": 20, "speed": 72 },
+      "enemy_heavy": { "hp": 168, "attack": 26, "defense": 16 }
+    },
     "playerUnits": [
       { "unitId": "fire_mage", "x": 1, "y": 4 },
       { "unitId": "swordsman", "x": 2, "y": 5 },

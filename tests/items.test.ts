@@ -5,10 +5,14 @@ import {
   PlayerProfile,
   equipItem,
   unequipItem,
+  equipSkillItem,
+  unequipSkillItem,
+  autoEquipSkillItems,
   consumeItem,
   inventoryStacks,
   equipBonusesFor,
   emptyEquipped,
+  SKILL_SLOT_COUNT,
 } from "@meta/index";
 import { BattleSimulator, applyItemEffect, unitById } from "@core/index";
 import { BattleSession, SessionHost, ViewModel, BattleItem } from "../src/interaction";
@@ -17,10 +21,27 @@ import { makeUnit, makeState } from "./helpers";
 const registry = createRegistry();
 const tables = loadMetaTables();
 
+/** 空技能栏。 */
+function emptySkillSlots(): (string | null)[] {
+  return Array(SKILL_SLOT_COUNT).fill(null);
+}
+
 /** 造一个只有一个玩家单位的 profile。 */
 function soloProfile(): PlayerProfile {
   return {
-    units: [{ defId: "wind_mage", level: 1, xp: 0, learnedSkills: ["wind_blade"], equipped: emptyEquipped(), unspentPoints: 0, allocated: {}, skillLevels: {} }],
+    units: [{ defId: "wind_mage", equipped: emptyEquipped(), skillSlots: emptySkillSlots() }],
+    inventory: [],
+    storyNodeId: "n",
+  };
+}
+
+/** 造一个多单位 profile（技能道具自动装备测试用）。 */
+function partyProfile(): PlayerProfile {
+  return {
+    units: [
+      { defId: "lancer", equipped: emptyEquipped(), skillSlots: emptySkillSlots() },
+      { defId: "swordsman", equipped: emptyEquipped(), skillSlots: emptySkillSlots() },
+    ],
     inventory: [],
     storyNodeId: "n",
   };
@@ -64,6 +85,98 @@ describe("背包：装备穿脱", () => {
     const p = soloProfile();
     p.inventory = ["minor_potion"];
     expect(equipItem(p, "wind_mage", "minor_potion", tables.items)).toBe(p);
+  });
+});
+
+describe("技能栏：秘卷装卸", () => {
+  it("装入第一个空格、出背包；纯函数不改入参", () => {
+    const p = soloProfile();
+    p.inventory = ["tome_push_wave"];
+    const next = equipSkillItem(p, "wind_mage", "tome_push_wave", tables.items);
+    expect(next.units[0].skillSlots[0]).toBe("tome_push_wave");
+    expect(next.inventory).toEqual([]);
+    expect(p.units[0].skillSlots[0]).toBeNull(); // 不改入参
+    expect(p.inventory).toEqual(["tome_push_wave"]);
+  });
+
+  it("指定已占用格 = 替换，旧秘卷退回背包", () => {
+    let p = soloProfile();
+    p.inventory = ["tome_push_wave", "tome_cyclone"];
+    p = equipSkillItem(p, "wind_mage", "tome_push_wave", tables.items, 0);
+    p = equipSkillItem(p, "wind_mage", "tome_cyclone", tables.items, 0);
+    expect(p.units[0].skillSlots[0]).toBe("tome_cyclone");
+    expect(p.inventory).toEqual(["tome_push_wave"]); // 被换下退回
+  });
+
+  it("五格全满且未指定格位：原样返回；指定格位则可替换", () => {
+    const p = soloProfile();
+    // 满栏但不含 wind_blade（最后一格放他人秘卷纯作占位数据，装卸校验只在装入时发生）。
+    p.units[0].skillSlots = ["tome_gale_gather", "tome_push_wave", "tome_cyclone", "tome_tempest", "tome_freeze"];
+    p.inventory = ["tome_wind_blade"];
+    expect(equipSkillItem(p, "wind_mage", "tome_wind_blade", tables.items)).toBe(p); // 无空格
+    const replaced = equipSkillItem(p, "wind_mage", "tome_wind_blade", tables.items, 4);
+    expect(replaced.units[0].skillSlots[4]).toBe("tome_wind_blade");
+    expect(replaced.inventory).toEqual(["tome_freeze"]); // 被换下退回
+  });
+
+  it("usableBy 校验：风术士不能装冰法师的秘卷", () => {
+    const p = soloProfile();
+    p.inventory = ["tome_freeze"];
+    expect(equipSkillItem(p, "wind_mage", "tome_freeze", tables.items)).toBe(p);
+  });
+
+  it("同技能去重：已装同 skillId 的秘卷不能再装", () => {
+    let p = soloProfile();
+    p.inventory = ["tome_push_wave", "tome_push_wave"];
+    p = equipSkillItem(p, "wind_mage", "tome_push_wave", tables.items);
+    expect(equipSkillItem(p, "wind_mage", "tome_push_wave", tables.items)).toBe(p);
+  });
+
+  it("非技能道具不能装入技能栏；不在背包的秘卷不能装", () => {
+    const p = soloProfile();
+    p.inventory = ["iron_sword"];
+    expect(equipSkillItem(p, "wind_mage", "iron_sword", tables.items)).toBe(p);
+    expect(equipSkillItem(p, "wind_mage", "tome_push_wave", tables.items)).toBe(p);
+  });
+
+  it("卸下：清格、退回背包；空格原样返回", () => {
+    let p = soloProfile();
+    p.inventory = ["tome_push_wave"];
+    p = equipSkillItem(p, "wind_mage", "tome_push_wave", tables.items, 2);
+    p = unequipSkillItem(p, "wind_mage", 2);
+    expect(p.units[0].skillSlots[2]).toBeNull();
+    expect(p.inventory).toEqual(["tome_push_wave"]);
+    expect(unequipSkillItem(p, "wind_mage", 2)).toBe(p); // 空格
+    expect(unequipSkillItem(p, "wind_mage", 99)).toBe(p); // 非法格
+  });
+});
+
+describe("技能栏：掉落自动装备", () => {
+  it("按队伍顺序装给第一个可用单位；非技能道具跳过", () => {
+    const p = partyProfile();
+    p.inventory = ["tome_guard_break", "iron_sword"];
+    const { profile, equipped } = autoEquipSkillItems(p, ["tome_guard_break", "iron_sword"], tables.items);
+    // lancer 在前 → 装给 lancer。
+    expect(profile.units[0].skillSlots[0]).toBe("tome_guard_break");
+    expect(equipped).toEqual([{ itemId: "tome_guard_break", defId: "lancer" }]);
+    expect(profile.inventory).toEqual(["iron_sword"]); // 装备类留背包
+  });
+
+  it("已装同技能的单位被跳过：第二份破甲刺装给剑客", () => {
+    const p = partyProfile();
+    p.units[0].skillSlots[0] = "tome_guard_break"; // lancer 已装
+    p.inventory = ["tome_guard_break"];
+    const { profile, equipped } = autoEquipSkillItems(p, ["tome_guard_break"], tables.items);
+    expect(profile.units[1].skillSlots[0]).toBe("tome_guard_break");
+    expect(equipped).toEqual([{ itemId: "tome_guard_break", defId: "swordsman" }]);
+  });
+
+  it("全员装不下/不可用：留在背包，无装备记录", () => {
+    const p = partyProfile();
+    p.inventory = ["tome_freeze"]; // 冰法师不在队伍
+    const { profile, equipped } = autoEquipSkillItems(p, ["tome_freeze"], tables.items);
+    expect(equipped).toEqual([]);
+    expect(profile.inventory).toEqual(["tome_freeze"]);
   });
 });
 

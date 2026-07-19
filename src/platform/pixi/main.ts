@@ -38,10 +38,11 @@ async function main(): Promise<void> {
     cutsceneSkip: () => director.skipCutscene(),
     resultPrimary: () => director.onResultPrimary(),
     resultSecondary: () => director.openLoadout("result"),
-    allocateStat: (defId, stat) => director.allocateStat(defId, stat),
     endingToTitle: () => director.toTitle(),
     equip: (defId, itemId) => director.doEquip(defId, itemId),
     unequip: (defId, slot) => director.doUnequip(defId, slot),
+    equipSkill: (defId, itemId, slotIndex) => director.doEquipSkill(defId, itemId, slotIndex),
+    unequipSkill: (defId, slotIndex) => director.doUnequipSkill(defId, slotIndex),
     closeLoadout: () => director.closeLoadout(),
   });
 
@@ -65,22 +66,46 @@ async function main(): Promise<void> {
     levelOf: getLevel,
   });
 
-  // 关卡下拉是调试工具：默认隐藏，直接跳关会绕过战役流程。加 ?debug 显示。
-  const debugMode = new URLSearchParams(location.search).has("debug");
-  if (debugMode) {
-    document.getElementById("level-select-wrap")?.removeAttribute("hidden");
-    const select = document.getElementById("level-select") as HTMLSelectElement;
-    for (const lvl of levels) {
-      const opt = document.createElement("option");
-      opt.value = lvl.id;
-      opt.textContent = lvl.name;
-      select.appendChild(opt);
-    }
-    select.addEventListener("change", () => {
-      screens.hide();
-      controller.load(getLevel(select.value));
-    });
+  // 调试滑块（常驻右上，任意屏幕可切换，状态持久化）：开启后显示选关下拉。
+  // 跳关 = 把战役跳到该关的剧情节点：按当前档案装配、接完整战役钩子，胜利后正常结算并推进下一关。
+  const DEBUG_KEY = "formation_debug_v1";
+  const debugToggle = document.getElementById("debug-toggle") as HTMLInputElement;
+  const levelSelectWrap = document.getElementById("level-select-wrap") as HTMLElement;
+  const select = document.getElementById("level-select") as HTMLSelectElement;
+  const battleNodeOfLevel = new Map<string, string>();
+  for (const node of Object.values(tables.story.nodes)) {
+    if (node.kind === "battle") battleNodeOfLevel.set(node.levelId, node.id);
   }
+  for (const lvl of levels) {
+    if (!battleNodeOfLevel.has(lvl.id)) continue; // 只列战役中真实存在的关卡
+    const opt = document.createElement("option");
+    opt.value = lvl.id;
+    opt.textContent = lvl.name;
+    select.appendChild(opt);
+  }
+  select.addEventListener("change", () => {
+    screens.hide();
+    director.goToNode(battleNodeOfLevel.get(select.value)!);
+  });
+  const applyDebug = (on: boolean): void => {
+    levelSelectWrap.hidden = !on;
+  };
+  let debugOn = false;
+  try {
+    debugOn = localStorage.getItem(DEBUG_KEY) === "1";
+  } catch {
+    /* 隐私模式等读取失败时按关闭处理 */
+  }
+  debugToggle.checked = debugOn;
+  applyDebug(debugOn);
+  debugToggle.addEventListener("change", () => {
+    applyDebug(debugToggle.checked);
+    try {
+      localStorage.setItem(DEBUG_KEY, debugToggle.checked ? "1" : "0");
+    } catch {
+      /* 写入失败仅影响下次打开的默认值 */
+    }
+  });
 
   director.boot();
 

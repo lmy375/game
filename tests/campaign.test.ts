@@ -94,7 +94,7 @@ describe("CampaignDirector 流程编排", () => {
     for (let i = 0; i < 6; i++) director.advanceCutscene();
     expect(host.battle).toBeTruthy();
     expect(host.hidden).toBeGreaterThan(0);
-    // 第一关火法师单人出战：起手基础技+招牌技，flame_wall（6 级）未解锁。
+    // 第一关火法师单人出战：技能栏预装基础技+招牌技，火墙秘卷（第 3 关掉落）未获得。
     const players = host.battle!.state.units.filter((u) => u.faction === "player");
     expect(players.map((u) => u.defId)).toEqual(["fire_mage"]);
     expect(players[0].skills).toEqual(["fire_bolt", "cross_fire"]);
@@ -120,7 +120,7 @@ describe("CampaignDirector 流程编排", () => {
     expect(host.battle).toBe(battle); // 未重建战斗、未跳节点
   });
 
-  it("胜利 → 结算屏含经验/升级/掉落；primary 推进到下一过场", () => {
+  it("胜利 → 结算屏含掉落战利品，技能秘卷标注自动装备去向；primary 推进到下一过场", () => {
     director.boot();
     director.newGame();
     for (let i = 0; i < 6; i++) director.advanceCutscene();
@@ -128,26 +128,28 @@ describe("CampaignDirector 流程编排", () => {
 
     expect(host.result).toBeTruthy();
     expect(host.result!.win).toBe(true);
-    expect(host.result!.xpGained).toBeGreaterThan(0);
-    expect(host.result!.levelUps.some((l) => l.name.includes("火法师"))).toBe(true);
     expect(host.result!.itemsGained.some((it) => it.name.includes("疾风护符"))).toBe(true);
+    const tome = host.result!.itemsGained.find((it) => it.name.includes("横向推击"))!;
+    expect(tome).toBeTruthy();
+    expect(tome.equippedTo).toBe("风术士");
 
     director.onResultPrimary();
     expect(host.cutscene!.nodeId).toBe("n_cut_2");
   });
 
-  it("第二场战斗：上一场成长进入预装配状态；新成员按队伍加入", () => {
+  it("第二场战斗：第一关掉落的秘卷已自动装备，风术士带横向推击入场", () => {
     director.boot();
     director.newGame();
     for (let i = 0; i < 6; i++) director.advanceCutscene();
-    winCurrentBattle(host); // 第一场（火法师单人）胜
+    winCurrentBattle(host); // 第一场（火法师单人）胜 → 掉落 tome_push_wave 自动装给风术士
     director.onResultPrimary(); // → 过场2
     for (let i = 0; i < 6; i++) director.advanceCutscene(); // → 第二场
-    // 火法师打完第一关升级，魔力成长已体现在装配状态中。
+    // 风术士第二关入队，带上自动装备的横向推击。
+    const wind = host.battle!.state.units.find((u) => u.defId === "wind_mage")!;
+    expect(wind.skills).toContain("push_wave");
+    // 火法师属性 = 基础值（无等级成长）。
     const fire = host.battle!.state.units.find((u) => u.defId === "fire_mage")!;
-    expect(fire.stats.magic).toBeGreaterThan(registry.unit("fire_mage").stats.magic);
-    // 风术士第二关入队。
-    expect(host.battle!.state.units.some((u) => u.defId === "wind_mage")).toBe(true);
+    expect(fire.stats.magic).toBe(registry.unit("fire_mage").stats.magic);
   });
 
   it("通关到结局；存档持久化且可续", () => {
@@ -170,28 +172,34 @@ describe("CampaignDirector 流程编排", () => {
     expect(host2.title!.hasSave).toBe(true);
   });
 
-  it("升级后结算屏出现加点面板；allocateStat 持久化并在下一场生效", () => {
+  it("整备界面装卸技能秘卷：持久化并在下一场生效", () => {
     director.boot();
     director.newGame();
     for (let i = 0; i < 6; i++) director.advanceCutscene();
-    winCurrentBattle(host); // 第一场胜（火法师单人）→ 升 2 级，获 pointsPerLevel 点
+    winCurrentBattle(host); // 第一场胜 → tome_push_wave 自动装给风术士
 
-    const pts = tables.progression.pointsPerLevel;
-    const firePanel = host.result!.allocations!.find((a) => a.name.includes("火法师"))!;
-    expect(firePanel.unspentPoints).toBe(pts);
-    const magicBase = registry.unit("fire_mage").stats.magic;
+    // 从结算进整备：风术士技能栏含横向推击秘卷，技能背包为空（都装上了）。
+    director.openLoadout("result");
+    const windPanel = host.loadout!.units.find((u) => u.defId === "wind_mage")!;
+    expect(windPanel.skillSlots).toHaveLength(5);
+    const tomeSlot = windPanel.skillSlots.find((s) => s.item?.itemId === "tome_push_wave")!;
+    expect(tomeSlot).toBeTruthy();
 
-    // 加 1 点魔力 → 面板即时刷新、点数 -1。
-    director.allocateStat("fire_mage", "magic");
-    const firePanel2 = host.result!.allocations!.find((a) => a.name.includes("火法师"))!;
-    expect(firePanel2.unspentPoints).toBe(pts - 1);
+    // 卸下 → 秘卷回背包（skillInventory 出现），技能栏空格。
+    director.doUnequipSkill("wind_mage", tomeSlot.index);
+    expect(host.loadout!.skillInventory.some((it) => it.itemId === "tome_push_wave")).toBe(true);
+    expect(host.loadout!.units.find((u) => u.defId === "wind_mage")!.skillSlots[tomeSlot.index].item).toBeUndefined();
 
-    // 推进到第二场：buildBattleState 反映加点。
+    // 重新装到指定格并持久化：下一场战斗生效。
+    director.doEquipSkill("wind_mage", "tome_push_wave", 4);
+    expect(host.loadout!.units.find((u) => u.defId === "wind_mage")!.skillSlots[4].item?.itemId).toBe("tome_push_wave");
+    expect(store.data!.profile.units.find((u) => u.defId === "wind_mage")!.skillSlots[4]).toBe("tome_push_wave");
+
+    director.closeLoadout(); // 返回结算
     director.onResultPrimary();
-    for (let i = 0; i < 6; i++) director.advanceCutscene();
-    const fire = host.battle!.state.units.find((u) => u.defId === "fire_mage")!;
-    // 2 级 fire_mage magic 成长 +5，另加 1 点 → base + 5 + 1。
-    expect(fire.stats.magic).toBe(magicBase + 5 + 1);
+    for (let i = 0; i < 6; i++) director.advanceCutscene(); // → 第二场
+    const wind = host.battle!.state.units.find((u) => u.defId === "wind_mage")!;
+    expect(wind.skills).toContain("push_wave");
   });
 
   it("战斗中休整：onOpenLoadout 打开整备（返回战斗），关闭后回写属性补丁", () => {

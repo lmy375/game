@@ -12,7 +12,7 @@ import {
 } from "@core/index";
 import { createRegistry, levels } from "@data/index";
 import { loadMetaTables, initialSaveData } from "@data/metaIndex";
-import { applyRewards, buildBattleState, computeRewards, levelUpNewcomers } from "@meta/index";
+import { applyRewards, buildBattleState, computeRewards } from "@meta/index";
 
 const registry = createRegistry();
 const tables = loadMetaTables();
@@ -111,13 +111,12 @@ describe("战役数值验证：贪心 bot 可通关全部关卡", () => {
     const results: string[] = [];
 
     for (const level of levels) {
-      profile = levelUpNewcomers(profile, level, tables.progression);
       const state = buildBattleState(profile, level, registry, tables);
       const final = playBattle(state);
       results.push(`${level.id}:${final.outcome}`);
       expect(final.outcome, `${level.id} 应由贪心 bot 打赢（当前 ${final.outcome}）`).toBe("player_win");
       const rewards = computeRewards(level, final, tables.levelRewards);
-      profile = applyRewards(profile, rewards, final, tables).profile;
+      profile = applyRewards(profile, rewards, tables.items).profile;
     }
     expect(results.length).toBe(10);
   });

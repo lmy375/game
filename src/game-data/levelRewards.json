@@ -1,12 +1,12 @@
 {
-  "level_001": { "levelId": "level_001", "xpPerSurvivingUnit": 120, "itemDrops": ["swift_charm", "minor_potion"] },
-  "level_002": { "levelId": "level_002", "xpPerSurvivingUnit": 140, "itemDrops": ["oak_staff", "minor_potion"] },
-  "level_003": { "levelId": "level_003", "xpPerSurvivingUnit": 160, "itemDrops": ["iron_band", "guard_amulet"] },
-  "level_004": { "levelId": "level_004", "xpPerSurvivingUnit": 180, "itemDrops": ["iron_sword", "leather_armor"] },
-  "level_005": { "levelId": "level_005", "xpPerSurvivingUnit": 200, "itemDrops": ["vitality_gem", "purify_herb"] },
-  "level_006": { "levelId": "level_006", "xpPerSurvivingUnit": 230, "itemDrops": ["greater_potion", "swift_charm"] },
-  "level_007": { "levelId": "level_007", "xpPerSurvivingUnit": 260, "itemDrops": ["oak_staff", "guard_amulet"] },
-  "level_008": { "levelId": "level_008", "xpPerSurvivingUnit": 300, "itemDrops": ["vitality_gem", "greater_potion"] },
-  "level_009": { "levelId": "level_009", "xpPerSurvivingUnit": 340, "itemDrops": ["iron_band", "leather_armor"] },
-  "level_010": { "levelId": "level_010", "xpPerSurvivingUnit": 400, "itemDrops": ["greater_potion", "greater_potion"] }
+  "level_001": { "levelId": "level_001", "itemDrops": ["swift_charm", "minor_potion", "tome_push_wave"] },
+  "level_002": { "levelId": "level_002", "itemDrops": ["oak_staff", "minor_potion", "tome_swap_skill"] },
+  "level_003": { "levelId": "level_003", "itemDrops": ["iron_band", "guard_amulet", "tome_flame_wall"] },
+  "level_004": { "levelId": "level_004", "itemDrops": ["iron_sword", "leather_armor", "tome_freeze", "tome_whirlwind_slash"] },
+  "level_005": { "levelId": "level_005", "itemDrops": ["vitality_gem", "purify_herb", "tome_cyclone"] },
+  "level_006": { "levelId": "level_006", "itemDrops": ["greater_potion", "swift_charm", "tome_guard_break", "tome_blizzard"] },
+  "level_007": { "levelId": "level_007", "itemDrops": ["oak_staff", "guard_amulet", "tome_mortal_strike"] },
+  "level_008": { "levelId": "level_008", "itemDrops": ["vitality_gem", "greater_potion", "tome_inferno", "tome_frost_nova"] },
+  "level_009": { "levelId": "level_009", "itemDrops": ["iron_band", "leather_armor", "tome_charge_thrust", "tome_tempest"] },
+  "level_010": { "levelId": "level_010", "itemDrops": ["greater_potion", "greater_potion"] }
 }

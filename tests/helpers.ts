@@ -40,9 +40,6 @@ export function makeUnit(faction: Faction, pos: Position, overrides: UnitOverrid
     actedThisTurn: overrides.actedThisTurn ?? false,
     cooldowns: overrides.cooldowns ?? {},
     ct: overrides.ct ?? 0,
-    level: overrides.level ?? 1,
-    xp: overrides.xp ?? 0,
-    skillLevels: overrides.skillLevels ?? {},
     aiProfile: overrides.aiProfile,
   };
 }

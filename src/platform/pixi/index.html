@@ -11,7 +11,11 @@
       <header>
         <h1>阵棋</h1>
         <div class="toolbar">
-          <label id="level-select-wrap" hidden>关卡(调试)：<select id="level-select"></select></label>
+          <label id="debug-toggle-wrap" class="debug-toggle" title="调试模式：开启后可随时跳关（绕过战役流程）">
+            <input type="checkbox" id="debug-toggle" />
+            <span class="dt-track"><span class="dt-thumb"></span></span>调试
+          </label>
+          <label id="level-select-wrap" hidden>关卡：<select id="level-select"></select></label>
           <span id="turn" class="turn"></span>
         </div>
       </header>

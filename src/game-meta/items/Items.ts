@@ -1,10 +1,14 @@
 /**
- * 道具体系：装备（三槽：武器/护甲/饰品）影响属性；消耗品可在战斗中使用（heal / cleanse）。
+ * 道具体系：装备（三槽：武器/护甲/饰品）影响属性；消耗品可在战斗中使用（heal / cleanse）；
+ * 技能道具（秘卷）装入单位的技能栏，出战时决定该单位可用技能。
  * 战斗效果类型 ItemEffect 由 game-core 定义（core 只认「补血/净化」，本层负责物品元数据）。
  */
 import { UnitStats, ItemEffect } from "@core/index";
 
-export type ItemKind = "equip" | "consumable";
+export type ItemKind = "equip" | "consumable" | "skill";
+
+/** 每个单位的技能栏格数。 */
+export const SKILL_SLOT_COUNT = 5;
 
 /** 装备槽位。 */
 export type EquipSlot = "weapon" | "armor" | "accessory";
@@ -39,6 +43,10 @@ export interface ItemDef {
   effect?: ItemEffect;
   /** kind==="consumable" 时存在：目标射程（0=仅自身，缺省 0）。 */
   range?: number;
+  /** kind==="skill" 时存在：装入技能栏后授予的技能 id。 */
+  skillId?: string;
+  /** kind==="skill" 时存在：可装备该技能的单位 defId 列表（显式声明，数据一致性由测试保证）。 */
+  usableBy?: string[];
 }
 
 export type ItemTable = Record<string, ItemDef>;
@@ -49,6 +57,10 @@ export function isEquip(item: ItemDef): boolean {
 
 export function isConsumable(item: ItemDef): boolean {
   return item.kind === "consumable";
+}
+
+export function isSkillItem(item: ItemDef): boolean {
+  return item.kind === "skill";
 }
 
 export function itemById(id: string, items: ItemTable): ItemDef {
@@ -74,5 +86,16 @@ export function bonusOf(equippedId: string | null, items: ItemTable): StatBonus[
 export function equipBonusesFor(equipped: EquippedSlots, items: ItemTable): StatBonus[] {
   const out: StatBonus[] = [];
   for (const id of Object.values(equipped)) out.push(...bonusOf(id, items));
+  return out;
+}
+
+/** 技能栏（技能道具 itemId 列表）映射为技能 id 列表，跳过空格与非法项。出战装配与 VM 共用。 */
+export function skillIdsOf(skillSlots: readonly (string | null)[], items: ItemTable): string[] {
+  const out: string[] = [];
+  for (const itemId of skillSlots) {
+    if (!itemId) continue;
+    const def = items[itemId];
+    if (def && isSkillItem(def) && def.skillId) out.push(def.skillId);
+  }
   return out;
 }

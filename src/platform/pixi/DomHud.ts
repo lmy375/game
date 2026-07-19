@@ -122,12 +122,12 @@ export class DomHud {
       menu.appendChild(undo);
     }
 
-    // 休整：打开整备界面（调整装备/加点后返回战斗）。
+    // 休整：打开整备界面（调整装备/技能后返回战斗）。
     if (vm.menu.showLoadout) {
       const loadout = document.createElement("button");
       loadout.className = "menu-secondary";
       loadout.textContent = "🛠 休整";
-      loadout.title = "进入整备界面：调整装备与属性点，返回后立即生效";
+      loadout.title = "进入整备界面：调整装备与技能，返回后立即生效";
       loadout.onclick = () => this.handlers.openLoadout();
       menu.appendChild(loadout);
     }
@@ -174,7 +174,7 @@ export class DomHud {
 
     const row = (u: ViewModel["info"]["players"][number]) =>
       `<div class="unit-row ${u.faction} ${u.dead ? "dead" : ""} ${u.selected ? "sel" : ""}">` +
-      `<span class="dot"></span>${u.name} <span class="lv">Lv${u.level}</span> <span class="spd">速${u.speed}</span> ` +
+      `<span class="dot"></span>${u.name} <span class="spd">速${u.speed}</span> ` +
       `<span class="hp">${u.hp}/${u.maxHp}</span></div>`;
     const players = vm.info.players.map(row).join("");
     const enemies = vm.info.enemies.map(row).join("");

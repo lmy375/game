@@ -28,7 +28,7 @@ import {
   applySwap,
   applyArrangeLine,
 } from "../displacement/displacement";
-import { computeDamage, dealDamage, heal, applyStatus, triggerTerrain, processDeaths, skillPower } from "./combat";
+import { computeDamage, dealDamage, heal, applyStatus, triggerTerrain, processDeaths } from "./combat";
 
 export interface SkillTarget {
   cell?: Position;
@@ -239,17 +239,16 @@ export function resolveSkillEffects(
     if (u) triggerTerrain(state, u, events);
   }
 
-  // 4) 伤害阶段（按施法者的该技能等级缩放倍率）
-  const powerMult = skillPower(caster.skillLevels[skill.id] ?? 1, skill);
+  // 4) 伤害阶段
   for (const h of hits) {
     for (const op of h.ops) {
       if (op.type === "damage") {
-        dealDamage(state, h.unit, computeDamage(caster, h.unit, op.element, op.multiplier, powerMult), `skill:${skill.id}`, events);
+        dealDamage(state, h.unit, computeDamage(caster, h.unit, op.element, op.multiplier), `skill:${skill.id}`, events);
       } else if (op.type === "gather_damage") {
         const mult = gatherMoved.has(h.unit.instanceId) ? op.movedMultiplier : op.stayedMultiplier;
-        dealDamage(state, h.unit, computeDamage(caster, h.unit, op.element, mult, powerMult), `skill:${skill.id}`, events);
+        dealDamage(state, h.unit, computeDamage(caster, h.unit, op.element, mult), `skill:${skill.id}`, events);
       } else if (op.type === "heal") {
-        heal(state, h.unit, Math.round(caster.stats.magic * op.multiplier * powerMult), events);
+        heal(state, h.unit, Math.round(caster.stats.magic * op.multiplier), events);
       }
     }
   }
@@ -263,6 +262,6 @@ export function resolveSkillEffects(
     }
   }
 
-  // 6) 死亡判定（归属施法者，用于战斗内经验）
+  // 6) 死亡判定（归属施法者）
   processDeaths(state, events, alreadyDead, caster.instanceId);
 }

@@ -27,7 +27,6 @@ export type BattleEvent =
   | { type: "terrain_triggered"; position: Position; terrainType: TerrainType; unitId: string }
   | { type: "obstacle_destroyed"; position: Position }
   | { type: "unit_died"; unitId: string; killerId?: string }
-  | { type: "unit_level_up"; unitId: string; fromLevel: number; toLevel: number; unlockedSkills: string[] }
   | { type: "turn_started"; faction: Faction; turnCount: number; unitId?: string }
   | { type: "turn_ended"; faction: Faction }
   | { type: "battle_ended"; outcome: "player_win" | "enemy_win" };

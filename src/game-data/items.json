@@ -84,5 +84,173 @@
     "description": "清除目标全部负面状态（自身或射程 1 内友军）。",
     "effect": { "type": "cleanse" },
     "range": 1
+  },
+  {
+    "id": "tome_wind_blade",
+    "name": "秘卷·风刃",
+    "kind": "skill",
+    "skillId": "wind_blade",
+    "usableBy": ["wind_mage"],
+    "description": "习得「风刃」：前方直线 2 格 100% 风伤。"
+  },
+  {
+    "id": "tome_gale_gather",
+    "name": "秘卷·狂风聚拢",
+    "kind": "skill",
+    "skillId": "gale_gather",
+    "usableBy": ["wind_mage"],
+    "description": "习得「狂风聚拢」：5×5 菱形聚拢+分档风伤。"
+  },
+  {
+    "id": "tome_push_wave",
+    "name": "秘卷·横向推击",
+    "kind": "skill",
+    "skillId": "push_wave",
+    "usableBy": ["wind_mage"],
+    "description": "习得「横向推击」：前方横排击退 2 格，撞墙额外伤害。"
+  },
+  {
+    "id": "tome_cyclone",
+    "name": "秘卷·旋风",
+    "kind": "skill",
+    "skillId": "cyclone",
+    "usableBy": ["wind_mage"],
+    "description": "习得「旋风」：九宫格风属 AOE。"
+  },
+  {
+    "id": "tome_tempest",
+    "name": "秘卷·风暴",
+    "kind": "skill",
+    "skillId": "tempest",
+    "usableBy": ["wind_mage"],
+    "description": "习得「风暴」：十字范围风暴。"
+  },
+  {
+    "id": "tome_fire_bolt",
+    "name": "秘卷·爆裂火弹",
+    "kind": "skill",
+    "skillId": "fire_bolt",
+    "usableBy": ["fire_mage"],
+    "description": "习得「爆裂火弹」：1-5 格小十字 100% 火伤。"
+  },
+  {
+    "id": "tome_cross_fire",
+    "name": "秘卷·十字火焰",
+    "kind": "skill",
+    "skillId": "cross_fire",
+    "usableBy": ["fire_mage"],
+    "description": "习得「十字火焰」：十字范围火焰爆发。"
+  },
+  {
+    "id": "tome_flame_wall",
+    "name": "秘卷·火墙",
+    "kind": "skill",
+    "skillId": "flame_wall",
+    "usableBy": ["fire_mage"],
+    "description": "习得「火墙」：前方横排火焰+燃烧。"
+  },
+  {
+    "id": "tome_inferno",
+    "name": "秘卷·炼狱",
+    "kind": "skill",
+    "skillId": "inferno",
+    "usableBy": ["fire_mage"],
+    "description": "习得「炼狱」：九宫格火焰+燃烧。"
+  },
+  {
+    "id": "tome_sweep",
+    "name": "秘卷·横扫",
+    "kind": "skill",
+    "skillId": "sweep",
+    "usableBy": ["lancer"],
+    "description": "习得「横扫」：前方横排 90% 物伤。"
+  },
+  {
+    "id": "tome_pierce_shot",
+    "name": "秘卷·贯穿射击",
+    "kind": "skill",
+    "skillId": "pierce_shot",
+    "usableBy": ["lancer"],
+    "description": "习得「贯穿射击」：直线贯穿多目标。"
+  },
+  {
+    "id": "tome_swap_skill",
+    "name": "秘卷·换位术",
+    "kind": "skill",
+    "skillId": "swap_skill",
+    "usableBy": ["lancer"],
+    "description": "习得「换位术」：与 1-3 格单位换位。"
+  },
+  {
+    "id": "tome_guard_break",
+    "name": "秘卷·破甲刺",
+    "kind": "skill",
+    "skillId": "guard_break",
+    "usableBy": ["lancer", "swordsman"],
+    "description": "习得「破甲刺」：直线 2 格物伤+易伤。"
+  },
+  {
+    "id": "tome_charge_thrust",
+    "name": "秘卷·冲锋突刺",
+    "kind": "skill",
+    "skillId": "charge_thrust",
+    "usableBy": ["lancer"],
+    "description": "习得「冲锋突刺」：直线贯穿高物伤。"
+  },
+  {
+    "id": "tome_crescent_slash",
+    "name": "秘卷·新月斩",
+    "kind": "skill",
+    "skillId": "crescent_slash",
+    "usableBy": ["swordsman"],
+    "description": "习得「新月斩」：前方横排 100% 物伤。"
+  },
+  {
+    "id": "tome_whirlwind_slash",
+    "name": "秘卷·旋风斩",
+    "kind": "skill",
+    "skillId": "whirlwind_slash",
+    "usableBy": ["swordsman"],
+    "description": "习得「旋风斩」：自身九宫格物伤。"
+  },
+  {
+    "id": "tome_mortal_strike",
+    "name": "秘卷·致命斩",
+    "kind": "skill",
+    "skillId": "mortal_strike",
+    "usableBy": ["swordsman"],
+    "description": "习得「致命斩」：T 字剑气，近格 160%/远排 100%。"
+  },
+  {
+    "id": "tome_frost_bolt",
+    "name": "秘卷·冰锥溅射",
+    "kind": "skill",
+    "skillId": "frost_bolt",
+    "usableBy": ["ice_mage"],
+    "description": "习得「冰锥溅射」：1-5 格小十字 100% 冰伤。"
+  },
+  {
+    "id": "tome_freeze",
+    "name": "秘卷·冰封",
+    "kind": "skill",
+    "skillId": "freeze",
+    "usableBy": ["ice_mage"],
+    "description": "习得「冰封」：1-4 格单体冰伤+冻结 2 回合。"
+  },
+  {
+    "id": "tome_frost_nova",
+    "name": "秘卷·冰霜新星",
+    "kind": "skill",
+    "skillId": "frost_nova",
+    "usableBy": ["ice_mage"],
+    "description": "习得「冰霜新星」：自身九宫格冰伤+冻结 1 回合。"
+  },
+  {
+    "id": "tome_blizzard",
+    "name": "秘卷·暴风雪",
+    "kind": "skill",
+    "skillId": "blizzard",
+    "usableBy": ["ice_mage"],
+    "description": "习得「暴风雪」：九宫格冰属 AOE。"
   }
 ]

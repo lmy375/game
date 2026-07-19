@@ -2,8 +2,7 @@
  * DOM 屏幕渲染器：把 campaign 的屏幕 ViewModel 渲染成 标题/过场/结算/结局 全屏覆盖层。镜像 DomHud 的形状。
  * 立绘优先用 AssetManifest 的图片，缺图时回退「圆盘 + 字形」纯 CSS。
  */
-import { TitleVM, CutsceneVM, ResultVM, EndingVM, PortraitVM, LoadoutVM, StatAllocationVM, InventoryItemVM, StatBonusVM } from "../../campaign";
-import { UnitStats } from "@core/index";
+import { TitleVM, CutsceneVM, ResultVM, EndingVM, PortraitVM, LoadoutVM, InventoryItemVM, StatBonusVM } from "../../campaign";
 import { EquipSlot } from "@meta/index";
 import { portraitUrlFor } from "./AssetManifest";
 
@@ -13,10 +12,11 @@ export interface ScreenHandlers {
   cutsceneSkip(): void;
   resultPrimary(): void;
   resultSecondary(): void;
-  allocateStat(defId: string, stat: keyof UnitStats): void;
   endingToTitle(): void;
   equip(defId: string, itemId: string): void;
   unequip(defId: string, slot: EquipSlot): void;
+  equipSkill(defId: string, itemId: string, slotIndex: number): void;
+  unequipSkill(defId: string, slotIndex: number): void;
   closeLoadout(): void;
 }
 
@@ -37,8 +37,10 @@ function portraitHtml(p: PortraitVM): string {
 export class DomScreens {
   /** 队伍界面：当前选中的角色 Tab（defId）。纯 UI 态。 */
   private loadoutTab: string | null = null;
-  /** 队伍界面：当前展开选装的槽位（null=未展开）。纯 UI 态。 */
+  /** 队伍界面：当前展开选装的装备槽位（null=未展开）。纯 UI 态。 */
   private loadoutSlot: EquipSlot | null = null;
+  /** 队伍界面：当前展开选装的技能栏格（null=未展开）。与装备槽互斥。纯 UI 态。 */
+  private loadoutSkillSlot: number | null = null;
   /** 队伍界面：当前展开介绍的物品 id（null=无）。纯 UI 态。 */
   private loadoutItemDetail: string | null = null;
 
@@ -120,39 +122,25 @@ export class DomScreens {
   }
 
   showResult(vm: ResultVM): void {
-    const xp = vm.win
-      ? `<div class="result-xp"><span class="result-xp-label">获得经验</span><span class="result-xp-val">+${vm.xpGained}</span></div>`
-      : "";
-    const ups = vm.levelUps
-      .map(
-        (u) =>
-          `<div class="result-card">${portraitHtml(u.portrait)}` +
-          `<div class="result-card-body">` +
-          `<div class="result-card-title"><span>${u.name}</span>` +
-          `<span class="lvl-badge">Lv.${u.fromLevel}<i>→</i>Lv.${u.toLevel}</span></div>` +
-          (u.unlockedSkills.length ? `<div class="result-card-sub">习得「${u.unlockedSkills.join("、")}」</div>` : "") +
-          `</div></div>`
-      )
-      .join("");
-    const upsSection = ups ? `<div class="result-section"><h2 class="result-h2">升级</h2><div class="result-list">${ups}</div></div>` : "";
     const items = vm.itemsGained
-      .map(
-        (it) =>
+      .map((it) => {
+        const equipped = it.equippedTo ? `<span class="loot-equipped">已装备给 ${it.equippedTo}</span>` : "";
+        return (
           `<div class="result-card loot-card"><span class="loot-icon">🎁</span>` +
-          `<div class="result-card-body"><div class="result-card-title loot-name">${it.name}</div>` +
+          `<div class="result-card-body"><div class="result-card-title loot-name"><span>${it.name}</span>${equipped}</div>` +
           `<div class="result-card-sub">${it.description}</div></div></div>`
-      )
+        );
+      })
       .join("");
     const itemsSection = items
       ? `<div class="result-section"><h2 class="result-h2">战利品</h2><div class="result-list">${items}</div></div>`
       : "";
-    const allocSection = this.allocHtml(vm.allocations);
     const secondary = vm.secondary
       ? `<button class="screen-btn screen-btn-secondary" data-id="secondary">${vm.secondary.label}</button>`
       : "";
     this.open(
-      `<div class="result-head"><h1 class="${vm.win ? "win" : "lose"}">${vm.title}</h1>${xp}</div>` +
-        `<div class="result-scroll">${upsSection}${itemsSection}${allocSection}</div>` +
+      `<div class="result-head"><h1 class="${vm.win ? "win" : "lose"}">${vm.title}</h1></div>` +
+        `<div class="result-scroll">${itemsSection}</div>` +
         `<div class="btn-row">${secondary}<button class="screen-btn" data-id="primary">${vm.primary.label}</button></div>`,
       "result-screen"
     );
@@ -160,55 +148,18 @@ export class DomScreens {
     if (btn) btn.onclick = () => this.handlers.resultPrimary();
     const sec = this.root.querySelector<HTMLButtonElement>(`button[data-id="secondary"]`);
     if (sec) sec.onclick = () => this.handlers.resultSecondary();
-    this.wireAllocButtons();
-  }
-
-  /** 加点面板 HTML（结算屏与整备屏共用）。无可分配单位时返回空串。 */
-  private allocHtml(allocations: StatAllocationVM[] | undefined): string {
-    const alloc = (allocations ?? [])
-      .map((a) => {
-        const spendable = a.unspentPoints > 0;
-        const rows = a.stats
-          .map(
-            (s) =>
-              `<div class="alloc-stat"><span class="alloc-label">${s.label}</span>` +
-              `<span class="alloc-value">${s.value}</span>` +
-              `<button class="alloc-btn" data-alloc="${a.defId}" data-stat="${s.key}"${spendable ? "" : " disabled"} aria-label="提升${s.label}">+</button></div>`
-          )
-          .join("");
-        return (
-          `<div class="alloc-panel"><div class="alloc-head">${portraitHtml(a.portrait)}` +
-          `<span class="alloc-name">${a.name}</span>` +
-          `<span class="alloc-points-badge${spendable ? " has-points" : ""}">可分配 <b>${a.unspentPoints}</b></span></div>` +
-          `<div class="alloc-stats">${rows}</div></div>`
-        );
-      })
-      .join("");
-    return alloc
-      ? `<div class="result-section alloc-body"><h2 class="result-h2">分配属性点</h2><div class="alloc-grid">${alloc}</div></div>`
-      : "";
-  }
-
-  /** 绑定加点「+」按钮（结算屏与整备屏共用）。 */
-  private wireAllocButtons(): void {
-    this.root.querySelectorAll<HTMLButtonElement>("button.alloc-btn").forEach((b) => {
-      b.onclick = () => {
-        const defId = b.dataset.alloc;
-        const stat = b.dataset.stat as keyof UnitStats | undefined;
-        if (defId && stat) this.handlers.allocateStat(defId, stat);
-      };
-    });
   }
 
   /**
-   * 队伍界面：顶部角色 Tab，切换后展示该角色的大立绘 / 属性 / 三个装备槽。
-   * 交互：点某个槽 → 下方展开该槽可用装备，点装备即装上（槽位由物品决定）；已装槽可「卸下」。
+   * 队伍界面：顶部角色 Tab，切换后展示该角色的大立绘 / 属性 / 三个装备槽 / 五格技能栏。
+   * 交互：点某个槽 → 下方展开该槽可用装备/技能，点物品即装上；已装槽可「卸下」。
    */
   showLoadout(vm: LoadoutVM): void {
     // 选中的 Tab 若已失效，回退到首个角色。
     if (!this.loadoutTab || !vm.units.some((u) => u.defId === this.loadoutTab)) {
       this.loadoutTab = vm.units[0]?.defId ?? null;
       this.loadoutSlot = null;
+      this.loadoutSkillSlot = null;
     }
     this.paintLoadout(vm);
   }
@@ -228,7 +179,7 @@ export class DomScreens {
     const body = active ? this.loadoutUnitBody(vm, active) : `<div class="lo-empty">队伍暂无成员</div>`;
 
     const consList = vm.consumables.length
-      ? vm.consumables.map((it) => this.itemRowHtml(it, false)).join("")
+      ? vm.consumables.map((it) => this.itemRowHtml(it, "none")).join("")
       : `<div class="lo-empty">背包无消耗品</div>`;
 
     this.open(
@@ -238,28 +189,40 @@ export class DomScreens {
         `<div class="lo-cons"><h2 class="lo-subtitle">消耗品（战斗中使用）</h2><div class="lo-list">${consList}</div></div>` +
         `<div class="btn-row"><button class="screen-btn" data-id="back">${vm.back.label}</button></div>`
     );
-    this.wireAllocButtons();
 
     // 切换角色 Tab。
     this.root.querySelectorAll<HTMLElement>("[data-tab]").forEach((el) => {
       el.onclick = () => {
         this.loadoutTab = el.dataset.tab!;
         this.loadoutSlot = null;
+        this.loadoutSkillSlot = null;
         this.loadoutItemDetail = null;
         this.paintLoadout(vm);
       };
     });
-    // 点槽位：展开 / 收起该槽的选装列表。
+    // 点装备槽位：展开 / 收起该槽的选装列表（与技能栏互斥）。
     this.root.querySelectorAll<HTMLElement>("[data-slot-pick]").forEach((el) => {
       el.onclick = (ev) => {
         if ((ev.target as HTMLElement).closest("[data-unequip]")) return; // 卸下按钮单独处理
         const slot = el.dataset.slotPick as EquipSlot;
         this.loadoutSlot = this.loadoutSlot === slot ? null : slot;
+        this.loadoutSkillSlot = null;
         this.loadoutItemDetail = null;
         this.paintLoadout(vm);
       };
     });
-    // 卸下已装槽。
+    // 点技能栏格：展开 / 收起技能选装列表（与装备槽互斥）。
+    this.root.querySelectorAll<HTMLElement>("[data-skillslot-pick]").forEach((el) => {
+      el.onclick = (ev) => {
+        if ((ev.target as HTMLElement).closest("[data-unequip-skill]")) return; // 卸下按钮单独处理
+        const idx = Number(el.dataset.skillslotPick);
+        this.loadoutSkillSlot = this.loadoutSkillSlot === idx ? null : idx;
+        this.loadoutSlot = null;
+        this.loadoutItemDetail = null;
+        this.paintLoadout(vm);
+      };
+    });
+    // 卸下已装装备槽。
     this.root.querySelectorAll<HTMLElement>("[data-unequip]").forEach((el) => {
       el.onclick = (ev) => {
         ev.stopPropagation();
@@ -267,10 +230,17 @@ export class DomScreens {
         if (active && slot) this.handlers.unequip(active.defId, slot);
       };
     });
+    // 卸下技能栏某格。
+    this.root.querySelectorAll<HTMLElement>("[data-unequip-skill]").forEach((el) => {
+      el.onclick = (ev) => {
+        ev.stopPropagation();
+        if (active) this.handlers.unequipSkill(active.defId, Number(el.dataset.unequipSkill));
+      };
+    });
     // 点物品行：展开 / 收起该物品的介绍与属性。
     this.root.querySelectorAll<HTMLElement>("[data-item]").forEach((el) => {
       el.onclick = (ev) => {
-        if ((ev.target as HTMLElement).closest("[data-equip-item]")) return; // 装备按钮单独处理
+        if ((ev.target as HTMLElement).closest("[data-equip-item],[data-equip-skill-item]")) return; // 装备按钮单独处理
         const id = el.dataset.item!;
         this.loadoutItemDetail = this.loadoutItemDetail === id ? null : id;
         this.paintLoadout(vm);
@@ -286,11 +256,22 @@ export class DomScreens {
         this.handlers.equip(active.defId, el.dataset.equipItem!);
       };
     });
+    // 从展开的详情里点「装备」把技能秘卷装入当前展开的技能栏格。
+    this.root.querySelectorAll<HTMLElement>("[data-equip-skill-item]").forEach((el) => {
+      el.onclick = (ev) => {
+        ev.stopPropagation();
+        if (!active || this.loadoutSkillSlot === null) return;
+        const slotIndex = this.loadoutSkillSlot;
+        this.loadoutSkillSlot = null; // 装上后收起列表
+        this.loadoutItemDetail = null;
+        this.handlers.equipSkill(active.defId, el.dataset.equipSkillItem!, slotIndex);
+      };
+    });
     const back = this.root.querySelector<HTMLButtonElement>(`button[data-id="back"]`);
     if (back) back.onclick = () => this.handlers.closeLoadout();
   }
 
-  /** 单个角色的详情：大立绘 + 属性(每属性一行) + 三个装备槽（+ 展开的选装列表）+ 该角色加点面板。 */
+  /** 单个角色的详情：大立绘 + 属性(每属性一行) + 三个装备槽 + 五格技能栏（+ 展开的选装列表）。 */
   private loadoutUnitBody(vm: LoadoutVM, u: LoadoutVM["units"][number]): string {
     const stats = u.stats
       .map((st) => `<div class="lo-statrow"><span class="lo-statname">${st.label}</span><span class="lo-statval">${st.value}</span></div>`)
@@ -311,39 +292,64 @@ export class DomScreens {
       })
       .join("");
 
-    // 展开的选装列表：背包里匹配当前槽位的装备。
+    const skillSlots = u.skillSlots
+      .map((s) => {
+        const filled = !!s.item;
+        const open = this.loadoutSkillSlot === s.index;
+        const unequip = filled
+          ? `<button class="lo-unequip" data-unequip-skill="${s.index}" title="卸下">✕</button>`
+          : "";
+        const body = filled ? `<b>${s.item!.name}</b>` : `<span class="slot-empty">空</span>`;
+        return (
+          `<div class="lo-slot lo-skillslot ${filled ? "filled" : ""} ${open ? "open" : ""}" data-skillslot-pick="${s.index}">` +
+          `<span class="slot-label">技能 ${s.index + 1}</span>${body}${unequip}</div>`
+        );
+      })
+      .join("");
+
+    // 展开的选装列表：背包里匹配当前装备槽位的装备，或当前角色可用的技能秘卷。
     let picker = "";
     if (this.loadoutSlot) {
       const label = u.slots.find((s) => s.slot === this.loadoutSlot)?.label ?? "装备";
       const options = vm.equipInventory.filter((it) => it.slot === this.loadoutSlot);
       const list = options.length
-        ? options.map((it) => this.itemRowHtml(it, true)).join("")
+        ? options.map((it) => this.itemRowHtml(it, "equip")).join("")
         : `<div class="lo-empty">背包无可用${label}</div>`;
       picker = `<div class="lo-picker"><h2 class="lo-subtitle">选择${label}（点物品看详情）</h2><div class="lo-list">${list}</div></div>`;
+    } else if (this.loadoutSkillSlot !== null) {
+      const options = vm.skillInventory.filter((it) => it.usableBy?.includes(u.defId));
+      const list = options.length
+        ? options.map((it) => this.itemRowHtml(it, "skill")).join("")
+        : `<div class="lo-empty">背包无 ${u.name} 可用的技能秘卷</div>`;
+      picker = `<div class="lo-picker"><h2 class="lo-subtitle">选择技能秘卷（点物品看详情）</h2><div class="lo-list">${list}</div></div>`;
     }
-
-    const alloc = this.allocHtml((vm.allocations ?? []).filter((a) => a.defId === u.defId));
 
     return (
       `<div class="lo-unit-detail">` +
       `<div class="lo-hero">${portraitHtml(u.portrait)}<div class="lo-hero-info"><div class="lo-name">${u.name}</div><div class="lo-statlist">${stats}</div></div></div>` +
-      `<div class="lo-slots">${slots}</div>${picker}${alloc}` +
+      `<div class="lo-slots">${slots}</div>` +
+      `<h2 class="lo-subtitle">技能栏</h2><div class="lo-slots lo-skillslots">${skillSlots}</div>${picker}` +
       `</div>`
     );
   }
 
   /**
    * 背包物品一行：名字 + 数量 + 属性徽标；点击展开介绍。
-   * equippable=true 的装备在展开区提供「装备」按钮。
+   * mode="equip"/"skill" 时在展开区提供「装备」按钮（分别装入装备槽 / 技能栏）。
    */
-  private itemRowHtml(it: InventoryItemVM, equippable: boolean): string {
+  private itemRowHtml(it: InventoryItemVM, mode: "equip" | "skill" | "none"): string {
     const open = this.loadoutItemDetail === it.itemId;
-    const icon = equippable ? "" : `<span class="item-icon">🧪</span>`;
+    const icon = mode === "none" ? `<span class="item-icon">🧪</span>` : mode === "skill" ? `<span class="item-icon">📜</span>` : "";
     const count = it.count > 1 ? `<small>×${it.count}</small>` : "";
     const badges = it.bonuses?.length ? `<span class="lo-badges">${bonusBadges(it.bonuses)}</span>` : "";
     let detail = "";
     if (open) {
-      const btn = equippable ? `<button class="lo-equip-btn" data-equip-item="${it.itemId}">装备</button>` : "";
+      const btn =
+        mode === "equip"
+          ? `<button class="lo-equip-btn" data-equip-item="${it.itemId}">装备</button>`
+          : mode === "skill"
+            ? `<button class="lo-equip-btn" data-equip-skill-item="${it.itemId}">装备</button>`
+            : "";
       detail = `<div class="lo-item-detail"><p class="lo-desc">${it.description}</p>${btn}</div>`;
     }
     return (

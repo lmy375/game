@@ -111,8 +111,6 @@ export interface UnitRowVM {
   speed: number;
   hp: number;
   maxHp: number;
-  /** 当前等级（侧栏展示）。 */
-  level: number;
 }
 
 export interface InfoVM {

@@ -1,6 +1,6 @@
 /**
  * 流程编排（引擎无关）：走剧情图，遇战斗节点用 game-meta 装配并交给战斗层，
- * 战斗结束算奖励/升级/存档，再展示结算并推进。镜像 BattleSession 的「状态机 + Host」模式。
+ * 战斗结束算奖励（掉落/技能秘卷自动装备）/存档，再展示结算并推进。镜像 BattleSession 的「状态机 + Host」模式。
  *
  * 跨战斗的真相在 game-meta；本类只编排「下一屏是什么」并驱动 CampaignHost。
  */
@@ -8,32 +8,32 @@ import { ContentRegistry, LevelDef, BattleState, UnitStats } from "@core/index";
 import {
   PlayerProfile,
   SaveData,
+  SAVE_VERSION,
   MetaTables,
   SaveStore,
   buildBattleState,
   computeRewards,
   applyRewards,
-  processCombatXp,
-  allocatePoint,
-  levelUpNewcomers,
   composeUnitStats,
-  unitProgress,
   nodeById,
   advance,
   StoryNode,
   CutsceneNode,
-  LevelUpResult,
   EquipSlot,
   EQUIP_SLOTS,
   ItemTable,
   StatBonus,
   isEquip,
   isConsumable,
+  isSkillItem,
   equipBonusesFor,
   equipItem,
   unequipItem,
+  equipSkillItem,
+  unequipSkillItem,
   consumeItem,
   inventoryStacks,
+  AutoEquipRecord,
 } from "@meta/index";
 import { BattleItem, UnitStatPatch } from "../interaction";
 import {
@@ -42,20 +42,19 @@ import {
   CutsceneVM,
   PortraitVM,
   CutsceneLineVM,
-  ResultLevelUpVM,
   ResultItemVM,
   ResultVM,
-  StatAllocationVM,
   StatRowVM,
   LoadoutVM,
   LoadoutUnitVM,
   LoadoutSlotVM,
+  SkillSlotVM,
   InventoryItemVM,
   StatBonusVM,
 } from "./types";
 
-/** 可手动加点的属性（不含 moveRange，避免机动性被点数轻易堆爆）。 */
-const ALLOCATABLE_STATS: { key: keyof UnitStats; label: string }[] = [
+/** 整备界面属性预览展示的属性（不含 moveRange，与装备加成可影响的主属性一致）。 */
+const PREVIEW_STATS: { key: keyof UnitStats; label: string }[] = [
   { key: "hp", label: "生命" },
   { key: "attack", label: "攻击" },
   { key: "magic", label: "魔力" },
@@ -102,19 +101,16 @@ export class CampaignDirector {
   private pending: PendingResult | null = null;
   /** 当前进行中的战斗（供调试强制结算）。 */
   private activeBattle: { battleNodeId: string; state: BattleState } | null = null;
-  /** 胜利结算屏的静态部分（加点期间反复重渲染，故缓存）。 */
-  private lastWin: { xpGained: number; levelUps: ResultLevelUpVM[]; itemsGained: ResultItemVM[] } | null = null;
+  /** 胜利结算屏的静态部分（从整备返回时重渲染，故缓存）。 */
+  private lastWin: { itemsGained: ResultItemVM[] } | null = null;
   /** 整备界面的返回目标（从标题、结算屏或战斗中的「休整」进入）。 */
   private loadoutReturn: "title" | "result" | "battle" = "title";
-  /** 整备界面是否正在显示（决定加点后重渲染哪块屏）。 */
-  private inLoadout = false;
 
   constructor(private readonly deps: CampaignDeps) {}
 
   // ---------- 启动 ----------
   /** 显示标题：有存档则「继续」可用。不自动续档。 */
   boot(): void {
-    this.inLoadout = false;
     const saved = this.deps.store.load();
     const start = nodeById(this.deps.tables.story, this.deps.tables.story.startId);
     this.profile = this.deps.newSave().profile;
@@ -169,17 +165,6 @@ export class CampaignDirector {
     this.lastWin = null;
   }
 
-  /** 加点：给某单位某属性 +1（消耗未分配点），持久化并重渲染当前所在屏（结算/整备均可）。 */
-  allocateStat(defId: string, stat: keyof UnitStats): void {
-    const up = unitProgress(this.profile, defId);
-    if (!up || up.unspentPoints <= 0) return;
-    const idx = this.profile.units.findIndex((u) => u.defId === defId);
-    this.profile.units[idx] = allocatePoint(up, stat);
-    this.persist();
-    if (this.inLoadout) this.deps.host.showLoadout(this.loadoutVM());
-    else if (this.lastWin) this.showWinResult();
-  }
-
   toTitle(): void {
     this.boot();
   }
@@ -188,7 +173,6 @@ export class CampaignDirector {
   /** 打开整备。从标题进入时若有存档则载入该档编辑（改动落到进行中的游戏）。 */
   openLoadout(from: "title" | "result" | "battle" = "title"): void {
     this.loadoutReturn = from;
-    this.inLoadout = true;
     if (from === "title") {
       const saved = this.deps.store.load();
       if (saved) {
@@ -201,7 +185,6 @@ export class CampaignDirector {
 
   /** 关闭整备，回到来源屏（结算/标题/战斗）。战斗中休整：把重算的属性回写进行中的战斗。 */
   closeLoadout(): void {
-    this.inLoadout = false;
     if (this.loadoutReturn === "battle") {
       this.deps.host.hideScreens();
       this.deps.host.updateBattleUnitStats(this.playerStatPatches());
@@ -212,20 +195,13 @@ export class CampaignDirector {
     }
   }
 
-  /** 按档案重算全部我方单位的最终属性（等级成长 + 加点 + 装备），与 buildBattleState 同一公式。 */
+  /** 按档案重算全部我方单位的最终属性（基础值 + 装备），与 buildBattleState 同一公式。 */
   private playerStatPatches(): UnitStatPatch[] {
     const patches: UnitStatPatch[] = [];
     for (const up of this.profile.units) {
       const def = this.tryUnit(up.defId);
       if (!def) continue;
-      const stats = composeUnitStats(
-        def.stats,
-        up.defId,
-        up.level,
-        this.deps.tables.progression.growth,
-        up.allocated,
-        equipBonusesFor(up.equipped, this.deps.tables.items)
-      );
+      const stats = composeUnitStats(def.stats, equipBonusesFor(up.equipped, this.deps.tables.items));
       patches.push({ defId: up.defId, stats, maxHp: stats.hp });
     }
     return patches;
@@ -241,6 +217,20 @@ export class CampaignDirector {
   /** 卸下某单位某槽的装备（退回背包）。 */
   doUnequip(defId: string, slot: EquipSlot): void {
     this.profile = unequipItem(this.profile, defId, slot);
+    this.persist();
+    this.deps.host.showLoadout(this.loadoutVM());
+  }
+
+  /** 给某单位技能栏装上背包里的一件技能道具（slotIndex 缺省=第一个空格；指定且被占用=替换）。 */
+  doEquipSkill(defId: string, itemId: string, slotIndex?: number): void {
+    this.profile = equipSkillItem(this.profile, defId, itemId, this.deps.tables.items, slotIndex);
+    this.persist();
+    this.deps.host.showLoadout(this.loadoutVM());
+  }
+
+  /** 卸下某单位技能栏某格的技能道具（退回背包）。 */
+  doUnequipSkill(defId: string, slotIndex: number): void {
+    this.profile = unequipSkillItem(this.profile, defId, slotIndex);
     this.persist();
     this.deps.host.showLoadout(this.loadoutVM());
   }
@@ -283,20 +273,12 @@ export class CampaignDirector {
         return;
       case "battle": {
         const level = this.deps.levelOf(node.levelId);
-        // 新成员入队时按当前老兵平均等级补齐等级/属性（技能仍按该级自然解锁，保留成长空间）。
-        const bumped = levelUpNewcomers(this.profile, level, this.deps.tables.progression);
-        if (bumped !== this.profile) {
-          this.profile = bumped;
-          this.persist();
-        }
         const state = buildBattleState(this.profile, level, this.deps.registry, this.deps.tables);
         this.activeBattle = { battleNodeId: id, state };
         this.deps.host.hideScreens();
         const battleNodeId = id;
         this.deps.host.startBattle(state, level, {
           onEnd: (outcome, finalState) => this.onBattleEnd(battleNodeId, outcome, finalState),
-          onEvents: (events, battleState) =>
-            processCombatXp(events, battleState, this.profile, this.deps.registry, this.deps.tables),
           battleItems: this.battleConsumables(),
           onItemConsumed: (itemId) => {
             this.profile = consumeItem(this.profile, itemId);
@@ -326,8 +308,8 @@ export class CampaignDirector {
 
     if (outcome === "player_win") {
       const rewards = computeRewards(level, finalState, this.deps.tables.levelRewards);
-      const { profile, levelUps, totalXpGained } = applyRewards(this.profile, rewards, finalState, this.deps.tables);
-      this.profile = profile; // 掉落物入背包，玩家在整备界面手动装备
+      const { profile, autoEquipped } = applyRewards(this.profile, rewards, this.deps.tables.items);
+      this.profile = profile; // 掉落入背包；技能秘卷已自动装备，其余在整备界面手动处理
 
       const resultNodeId = advance(this.deps.tables.story, battleNodeId); // result 节点
       const afterResultId = resultNodeId ? advance(this.deps.tables.story, resultNodeId) : null;
@@ -335,22 +317,13 @@ export class CampaignDirector {
       this.persist(); // 存档落在结算后的下一节点，刷新可从那里续
 
       this.pending = { kind: "win", battleNodeId };
-      this.lastWin = {
-        xpGained: totalXpGained,
-        levelUps: levelUps.map((lu) => this.levelUpVM(lu)),
-        itemsGained: rewards.itemDrops.map((id) => {
-          const it = this.deps.tables.items[id];
-          return { name: it?.name ?? id, description: it?.description ?? "" };
-        }),
-      };
+      this.lastWin = { itemsGained: this.itemsGainedVM(rewards.itemDrops, autoEquipped) };
       this.showWinResult();
     } else {
       this.pending = { kind: "lose", battleNodeId };
       this.deps.host.showResult({
         win: false,
         title: "战败",
-        xpGained: 0,
-        levelUps: [],
         itemsGained: [],
         primary: { id: "retry", label: "重试" },
       });
@@ -378,7 +351,27 @@ export class CampaignDirector {
 
   private persist(): void {
     this.profile.storyNodeId = this.nodeId;
-    this.deps.store.save({ version: 3, profile: this.profile });
+    this.deps.store.save({ version: SAVE_VERSION, profile: this.profile });
+  }
+
+  /** 掉落物 → 结算屏战利品 VM（技能秘卷标注接收单位）。 */
+  private itemsGainedVM(itemDrops: string[], autoEquipped: AutoEquipRecord[]): ResultItemVM[] {
+    // 同 id 掉多份时逐份消费装备记录（如两份破甲刺秘卷分别装给剑客与枪兵）。
+    const pendingByItem = new Map<string, string[]>();
+    for (const rec of autoEquipped) {
+      const list = pendingByItem.get(rec.itemId) ?? [];
+      list.push(rec.defId);
+      pendingByItem.set(rec.itemId, list);
+    }
+    return itemDrops.map((id) => {
+      const it = this.deps.tables.items[id];
+      const equippedDefId = pendingByItem.get(id)?.shift();
+      return {
+        name: it?.name ?? id,
+        description: it?.description ?? "",
+        equippedTo: equippedDefId ? this.unitName(equippedDefId) : undefined,
+      };
+    });
   }
 
   // ---------- VM 构建 ----------
@@ -404,42 +397,20 @@ export class CampaignDirector {
     return { nodeId: node.id, lines, cursor: this.cursor, continueLabel: "点击任意位置继续", skipLabel: "跳过" };
   }
 
-  /** 用缓存的静态部分 + 实时加点面板重渲染胜利结算屏。 */
+  /** 用缓存的静态部分重渲染胜利结算屏（从整备返回时复用）。 */
   private showWinResult(): void {
     if (!this.lastWin) return;
-    this.inLoadout = false;
     const vm: ResultVM = {
       win: true,
       title: "胜利",
-      xpGained: this.lastWin.xpGained,
-      levelUps: this.lastWin.levelUps,
       itemsGained: this.lastWin.itemsGained,
-      allocations: this.allocationsVM(),
       primary: { id: "advance", label: "继续" },
       secondary: { id: "loadout", label: "队伍" },
     };
     this.deps.host.showResult(vm);
   }
 
-  /** 为有未分配点数的单位构建加点面板（当前值 = 等级成长 + 已加点，不含装备）。 */
-  private allocationsVM(): StatAllocationVM[] | undefined {
-    const panels: StatAllocationVM[] = [];
-    for (const up of this.profile.units) {
-      if (up.unspentPoints <= 0) continue;
-      const name = this.unitName(up.defId);
-      // 展示当前值 = 等级成长 + 已加点（不含装备）。
-      panels.push({
-        defId: up.defId,
-        name,
-        portrait: this.unitPortrait(name),
-        unspentPoints: up.unspentPoints,
-        stats: this.composedStatRows(up, []),
-      });
-    }
-    return panels.length ? panels : undefined;
-  }
-
-  /** 构建整备界面 VM：各单位三槽 + 属性预览（含装备加成），背包按装备/消耗品分列。 */
+  /** 构建整备界面 VM：各单位三装备槽 + 技能栏 + 属性预览（含装备加成），背包按装备/技能/消耗品分列。 */
   private loadoutVM(): LoadoutVM {
     const items: ItemTable = this.deps.tables.items;
     const units: LoadoutUnitVM[] = this.profile.units.map((up) => {
@@ -453,42 +424,48 @@ export class CampaignDirector {
           item: it ? { itemId: it.id, name: it.name, description: it.description, bonuses: bonusVMs(it.bonus) } : undefined,
         };
       });
+      const skillSlots: SkillSlotVM[] = up.skillSlots.map((id, index) => {
+        const it = id ? items[id] : undefined;
+        return {
+          index,
+          item: it ? { itemId: it.id, name: it.name, description: it.description } : undefined,
+        };
+      });
       // 属性预览含装备加成。
       const stats = this.composedStatRows(up, equipBonusesFor(up.equipped, items));
-      return { defId: up.defId, name, portrait: this.unitPortrait(name), slots, stats };
+      return { defId: up.defId, name, portrait: this.unitPortrait(name), slots, skillSlots, stats };
     });
 
     const equipInventory: InventoryItemVM[] = [];
+    const skillInventory: InventoryItemVM[] = [];
     const consumables: InventoryItemVM[] = [];
     for (const st of inventoryStacks(this.profile)) {
       const def = items[st.itemId];
       if (!def) continue;
-      const vm: InventoryItemVM = { itemId: def.id, name: def.name, description: def.description, slot: def.slot, bonuses: bonusVMs(def.bonus), count: st.count };
+      const vm: InventoryItemVM = {
+        itemId: def.id,
+        name: def.name,
+        description: def.description,
+        slot: def.slot,
+        bonuses: bonusVMs(def.bonus),
+        usableBy: def.usableBy,
+        count: st.count,
+      };
       if (isEquip(def)) equipInventory.push(vm);
+      else if (isSkillItem(def)) skillInventory.push(vm);
       else consumables.push(vm);
     }
 
     return {
       units,
       equipInventory,
+      skillInventory,
       consumables,
-      allocations: this.allocationsVM(),
       back: {
         id: "back",
         label:
           this.loadoutReturn === "battle" ? "返回战斗" : this.loadoutReturn === "result" ? "返回结算" : "返回标题",
       },
-    };
-  }
-
-  private levelUpVM(lu: LevelUpResult): ResultLevelUpVM {
-    const name = this.unitName(lu.progress.defId);
-    return {
-      portrait: this.unitPortrait(name),
-      name,
-      fromLevel: lu.fromLevel,
-      toLevel: lu.toLevel,
-      unlockedSkills: lu.unlockedSkills.map((s) => this.trySkillName(s)),
     };
   }
 
@@ -514,31 +491,10 @@ export class CampaignDirector {
     return { glyph: name.slice(0, 1), faction: "player" };
   }
 
-  /**
-   * 单位属性行（等级成长 + 已加点 + 传入的装备加成）。与 buildBattleState 同一公式。
-   * 加点面板传 [] 表示不含装备；整备界面传 equipBonusesFor(...) 表示含装备。
-   */
-  private composedStatRows(up: { defId: string; level: number; allocated: Partial<UnitStats> }, equipBonuses: StatBonus[]): StatRowVM[] {
-    let composed: UnitStats | null = null;
-    try {
-      composed = composeUnitStats(
-        this.deps.registry.unit(up.defId).stats,
-        up.defId,
-        up.level,
-        this.deps.tables.progression.growth,
-        up.allocated,
-        equipBonuses
-      );
-    } catch {
-      composed = null;
-    }
-    return ALLOCATABLE_STATS.map((s) => ({ key: s.key, label: s.label, value: composed ? composed[s.key] : 0 }));
-  }
-  private trySkillName(skillId: string): string {
-    try {
-      return this.deps.registry.skill(skillId).name;
-    } catch {
-      return skillId;
-    }
+  /** 单位属性行（基础值 + 传入的装备加成）。与 buildBattleState 同一公式。 */
+  private composedStatRows(up: { defId: string }, equipBonuses: StatBonus[]): StatRowVM[] {
+    const base = this.tryUnit(up.defId)?.stats;
+    const composed = base ? composeUnitStats(base, equipBonuses) : null;
+    return PREVIEW_STATS.map((s) => ({ key: s.key, label: s.label, value: composed ? composed[s.key] : 0 }));
   }
 }

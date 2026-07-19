@@ -1,16 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { createRegistry, getLevel } from "@data/index";
-import { loadMetaTables, initialSaveData, migrateLegacySave } from "@data/metaIndex";
+import { createRegistry, getLevel, levels } from "@data/index";
+import { loadMetaTables, initialSaveData } from "@data/metaIndex";
 import {
   buildBattleState,
   computeRewards,
   applyRewards,
-  gainXp,
-  levelForXp,
-  statsForLevel,
-  applyLevelUps,
-  allocatePoint,
-  levelUpNewcomers,
   unitProgress,
   serialize,
   deserialize,
@@ -18,14 +12,18 @@ import {
   nodeById,
   isTerminal,
   cloneProfile,
+  isSkillItem,
+  skillIdsOf,
+  SKILL_SLOT_COUNT,
+  SAVE_VERSION,
 } from "@meta/index";
-import { loadLevel, livingUnits, UnitStats } from "@core/index";
+import { loadLevel, UnitStats } from "@core/index";
 import { runToOutcome } from "./helpers";
 
 const registry = createRegistry();
 const tables = loadMetaTables();
 
-/** 用真实 loadout 装配某关，再确定性地标记为玩家胜利（杀光敌方）——用于稳定测试奖励/升级逻辑，
+/** 用真实 loadout 装配某关，再确定性地标记为玩家胜利（杀光敌方）——用于稳定测试奖励逻辑，
  *  不依赖朴素 bot 是否打赢（朴素 bot 可能输，见 battle.test「完整对局可推进」只断言有结果）。 */
 function wonState(profile: ReturnType<typeof initialSaveData>["profile"], levelId: string) {
   const s = buildBattleState(profile, getLevel(levelId), registry, tables);
@@ -35,104 +33,29 @@ function wonState(profile: ReturnType<typeof initialSaveData>["profile"], levelI
 }
 
 describe("起始档案", () => {
-  it("wind_mage 起手仅 wind_blade/gale_gather（无 push_wave），lancer 起手 sweep/pierce_shot", () => {
+  it("各角色技能栏预装基础秘卷；wind_mage 无横向推击（第一关掉落）", () => {
     const save = initialSaveData();
+    expect(save.version).toBe(SAVE_VERSION);
+
     const wind = unitProgress(save.profile, "wind_mage")!;
-    expect(wind.learnedSkills).toEqual(["wind_blade", "gale_gather"]);
-    expect(wind.learnedSkills).not.toContain("push_wave");
-    // lancer 登场即会招牌技 pierce_shot（与另两名角色的招牌技预置对齐），否则第 3 战贯穿教学无法完成。
-    expect(unitProgress(save.profile, "lancer")!.learnedSkills).toEqual(["sweep", "pierce_shot"]);
+    expect(wind.skillSlots).toHaveLength(SKILL_SLOT_COUNT);
+    expect(skillIdsOf(wind.skillSlots, tables.items)).toEqual(["wind_blade", "gale_gather"]);
+    expect(skillIdsOf(wind.skillSlots, tables.items)).not.toContain("push_wave");
+
+    // lancer 登场即会招牌技 pierce_shot，否则第 3 战贯穿教学无法完成。
+    expect(skillIdsOf(unitProgress(save.profile, "lancer")!.skillSlots, tables.items)).toEqual(["sweep", "pierce_shot"]);
+    // 剑客起手带破甲刺（第 4 战破甲教学）；冰法师仅基础技。
+    expect(skillIdsOf(unitProgress(save.profile, "swordsman")!.skillSlots, tables.items)).toEqual(["crescent_slash", "guard_break"]);
+    expect(skillIdsOf(unitProgress(save.profile, "ice_mage")!.skillSlots, tables.items)).toEqual(["frost_bolt"]);
+
     // 起始背包预置装备与消耗品（开箱即用）。
     expect(save.profile.inventory).toEqual(["iron_sword", "leather_armor", "minor_potion", "minor_potion", "purify_herb"]);
     expect(save.profile.storyNodeId).toBe("n_title");
-    expect(save.version).toBe(3);
   });
 });
-
-describe("等级体系", () => {
-  it("levelForXp 边界（20 级曲线）", () => {
-    const curve = tables.progression.xpCurve;
-    expect(curve.maxLevel).toBe(20);
-    expect(levelForXp(0, curve)).toBe(1);
-    expect(levelForXp(curve.xpToReach[2] - 1, curve)).toBe(1);
-    expect(levelForXp(curve.xpToReach[2], curve)).toBe(2);
-    expect(levelForXp(curve.xpToReach[3], curve)).toBe(3);
-    expect(levelForXp(curve.xpToReach[20], curve)).toBe(20);
-    expect(levelForXp(999999, curve)).toBe(20); // 封顶不越界
-  });
-
-  it("gainXp 累加且不改入参", () => {
-    const up = unitProgress(initialSaveData().profile, "wind_mage")!;
-    const next = gainXp(up, 120);
-    expect(next.xp).toBe(120);
-    expect(up.xp).toBe(0); // 入参不变
-  });
-
-  it("statsForLevel：1 级=基础，升级按成长叠加", () => {
-    const base = registry.unit("wind_mage").stats;
-    expect(statsForLevel(base, "wind_mage", 1, tables.progression.growth)).toEqual(base);
-    const lv2 = statsForLevel(base, "wind_mage", 2, tables.progression.growth);
-    expect(lv2.magic).toBe(base.magic + 4);
-    expect(lv2.hp).toBe(base.hp + 8);
-    expect(lv2.speed).toBe(base.speed + 1);
-  });
-
-  it("applyLevelUps 解锁技能（含一次跨多级）", () => {
-    const wind = gainXp(unitProgress(initialSaveData().profile, "wind_mage")!, 120);
-    const r = applyLevelUps(wind, tables.progression);
-    expect(r.fromLevel).toBe(1);
-    expect(r.toLevel).toBe(2);
-    expect(r.unlockedSkills).toContain("push_wave");
-    expect(r.progress.learnedSkills).toContain("push_wave");
-
-    // lancer 起手已预置 sweep/pierce_shot，跨级升到 5 级 → 仅新解锁 swap_skill(L3)，
-    // 而已会的技能不应被重复解锁。
-    const lancer = gainXp(unitProgress(initialSaveData().profile, "lancer")!, 540);
-    const lr = applyLevelUps(lancer, tables.progression);
-    expect(lr.toLevel).toBe(5);
-    expect(lr.unlockedSkills).toEqual(["swap_skill"]);
-    expect(lr.progress.learnedSkills).toContain("swap_skill");
-  });
-
-  it("applyLevelUps：升级授予属性点 + 技能升级（fire_mage 升到 5 级 cross_fire +1）", () => {
-    const curve = tables.progression.xpCurve;
-    // fire_mage 升到 5 级：跨 4 级 → 4 * pointsPerLevel 点。
-    const fire = gainXp(unitProgress(initialSaveData().profile, "fire_mage")!, curve.xpToReach[5]);
-    const r = applyLevelUps(fire, tables.progression);
-    expect(r.toLevel).toBe(5);
-    expect(r.pointsGranted).toBe(4 * tables.progression.pointsPerLevel);
-    expect(r.progress.unspentPoints).toBe(4 * tables.progression.pointsPerLevel);
-    // skillGrowth: fire_mage 在 5 级给 cross_fire +1。
-    expect(r.skillLevelUps).toContain("cross_fire");
-    expect(r.progress.skillLevels["cross_fire"]).toBe(2);
-    // unlocks: fire_bolt 为起手基础技；6 级 flame_wall 未到。
-    expect(r.progress.learnedSkills).toContain("fire_bolt");
-    expect(r.progress.learnedSkills).not.toContain("flame_wall");
-  });
-
-  it("allocatePoint：消耗点数、写入 allocated；无点数原样返回", () => {
-    const base = unitProgress(initialSaveData().profile, "wind_mage")!;
-    const withPoints = { ...cloneProfileUnit(base), unspentPoints: 2 };
-    const once = allocatePoint(withPoints, "attack");
-    expect(once.unspentPoints).toBe(1);
-    expect(once.allocated.attack).toBe(1);
-    const twice = allocatePoint(once, "attack");
-    expect(twice.allocated.attack).toBe(2);
-    expect(twice.unspentPoints).toBe(0);
-    // 无点数：原样返回同引用。
-    expect(allocatePoint(twice, "attack")).toBe(twice);
-    // 不改入参。
-    expect(withPoints.unspentPoints).toBe(2);
-  });
-});
-
-/** 小工具：克隆一个 UnitProgress（避免直接改档案）。 */
-function cloneProfileUnit<T>(u: T): T {
-  return JSON.parse(JSON.stringify(u)) as T;
-}
 
 describe("loadout：buildBattleState 复用 loadLevel + 按档案打补丁", () => {
-  it("玩家单位 skills==learnedSkills；敌方与 loadLevel 基线一致；满血", () => {
+  it("玩家单位 skills 来自技能栏；敌方与 loadLevel 基线一致；满血", () => {
     const save = initialSaveData();
     const built = buildBattleState(save.profile, getLevel("level_001"), registry, tables);
     const baseline = loadLevel(getLevel("level_001"), registry);
@@ -167,6 +90,14 @@ describe("loadout：buildBattleState 复用 loadLevel + 按档案打补丁", () 
     expect(fireBuilt2.hp).toBe(fireBuilt2.maxHp);
   });
 
+  it("整备换技能反映到装配：卸下十字火焰后战斗中不再拥有", () => {
+    const save = initialSaveData();
+    const fire = unitProgress(save.profile, "fire_mage")!;
+    fire.skillSlots[1] = null; // 卸下 tome_cross_fire（测试直接改档案，UI 路径见 campaign.test）
+    const built = buildBattleState(save.profile, getLevel("level_001"), registry, tables);
+    expect(built.units.find((u) => u.defId === "fire_mage")!.skills).toEqual(["fire_bolt"]);
+  });
+
   it("不修改传入的 profile，也不污染 registry 的共享 def", () => {
     const save = initialSaveData();
     const snapshot = JSON.stringify(save.profile);
@@ -177,35 +108,34 @@ describe("loadout：buildBattleState 复用 loadLevel + 按档案打补丁", () 
   });
 });
 
-describe("loadout：新机制装配", () => {
-  it("敌人按关卡 enemyLevel 缩放（level_002 enemyLevel=2）", () => {
+describe("敌人固定属性（enemyStatOverrides 烘焙）", () => {
+  it("level_004 起敌人吃覆盖值；level_001 用基础值", () => {
     const save = initialSaveData();
     const baseSoldier = registry.unit("enemy_soldier").stats;
-    const built = buildBattleState(save.profile, getLevel("level_002"), registry, tables);
-    const soldier = built.units.find((u) => u.faction === "enemy" && u.defId === "enemy_soldier")!;
-    // enemyGrowth.enemy_soldier.hp=8 → 2 级 = base + 8。
-    expect(soldier.level).toBe(2);
-    expect(soldier.stats.hp).toBe(baseSoldier.hp + 8);
-    expect(soldier.maxHp).toBe(baseSoldier.hp + 8);
-    expect(soldier.hp).toBe(soldier.maxHp);
-    // level_001 无 enemyLevel → 不缩放。
+
+    const built4 = buildBattleState(save.profile, getLevel("level_004"), registry, tables);
+    const soldier4 = built4.units.find((u) => u.faction === "enemy" && u.defId === "enemy_soldier")!;
+    expect(soldier4.stats.hp).toBe(88);
+    expect(soldier4.stats.attack).toBe(20);
+    expect(soldier4.stats.defense).toBe(7);
+    expect(soldier4.maxHp).toBe(88);
+    expect(soldier4.hp).toBe(soldier4.maxHp);
+    // 未覆盖的字段保持基础值。
+    expect(soldier4.stats.moveRange).toBe(baseSoldier.moveRange);
+
     const built1 = buildBattleState(save.profile, getLevel("level_001"), registry, tables);
     const soldier1 = built1.units.find((u) => u.faction === "enemy" && u.defId === "enemy_soldier")!;
-    expect(soldier1.level).toBe(1);
-    expect(soldier1.stats.hp).toBe(baseSoldier.hp);
+    expect(soldier1.stats).toEqual(baseSoldier);
   });
 
-  it("玩家手动加点叠加在等级成长之上；skillLevels 注入战斗单位", () => {
-    const save = initialSaveData();
-    const fire = unitProgress(save.profile, "fire_mage")!;
-    const base = registry.unit("fire_mage").stats;
-    fire.allocated = { attack: 5 };
-    fire.skillLevels = { fire_bolt: 3 };
-    const built = buildBattleState(save.profile, getLevel("level_001"), registry, tables);
-    const fireBuilt = built.units.find((u) => u.defId === "fire_mage")!;
-    expect(fireBuilt.stats.attack).toBe(base.attack + 5); // 1 级成长为 0，仅加点
-    expect(fireBuilt.skillLevels.fire_bolt).toBe(3);
-    expect(fireBuilt.level).toBe(1);
+  it("loadLevel 直连（调试模式）同样生效", () => {
+    const direct = loadLevel(getLevel("level_004"), registry);
+    const soldier = direct.units.find((u) => u.faction === "enemy" && u.defId === "enemy_soldier")!;
+    expect(soldier.stats.hp).toBe(88);
+    // 玩家单位不受 enemyStatOverrides 影响。
+    for (const u of direct.units.filter((x) => x.faction === "player")) {
+      expect(u.stats).toEqual(registry.unit(u.defId).stats);
+    }
   });
 });
 
@@ -218,71 +148,115 @@ describe("loadout 可实战", () => {
 });
 
 describe("奖励结算（确定性胜利态）", () => {
-  it("computeRewards：胜利掉落 swift_charm + 每个幸存者 120 经验", () => {
+  it("computeRewards：胜利掉落本关全部物品；失败无掉落", () => {
     const save = initialSaveData();
     const final = wonState(save.profile, "level_001");
     const rewards = computeRewards(getLevel("level_001"), final, tables.levelRewards);
     expect(rewards.win).toBe(true);
-    expect(rewards.itemDrops).toEqual(["swift_charm", "minor_potion"]);
-    const survivors = livingUnits(final, "player").map((u) => u.defId);
-    expect(survivors.length).toBeGreaterThan(0);
-    for (const defId of survivors) expect(rewards.xpByDefId[defId]).toBe(120);
+    expect(rewards.itemDrops).toEqual(["swift_charm", "minor_potion", "tome_push_wave"]);
+
+    const lost = wonState(save.profile, "level_001");
+    lost.outcome = "enemy_win";
+    const noRewards = computeRewards(getLevel("level_001"), lost, tables.levelRewards);
+    expect(noRewards.win).toBe(false);
+    expect(noRewards.itemDrops).toEqual([]);
   });
 
-  it("applyRewards 端到端：wind_mage 升 2 级 + 解锁 push_wave + 掉落入背包", () => {
+  it("applyRewards：掉落入背包；技能秘卷自动装备到风术士空格并记录", () => {
     const save = initialSaveData();
-    // 第二关火法师 + 风术士出战，胜利后风术士升级解锁 push_wave。
-    const final = wonState(save.profile, "level_002");
-    const rewards = computeRewards(getLevel("level_002"), final, tables.levelRewards);
-    const { profile, levelUps } = applyRewards(save.profile, rewards, final, tables);
+    const final = wonState(save.profile, "level_001");
+    const rewards = computeRewards(getLevel("level_001"), final, tables.levelRewards);
+    const { profile, autoEquipped } = applyRewards(save.profile, rewards, tables.items);
+
+    // 普通掉落留在背包；秘卷装走后不在背包。
+    expect(profile.inventory).toContain("swift_charm");
+    expect(profile.inventory).toContain("minor_potion");
+    expect(profile.inventory).not.toContain("tome_push_wave");
 
     const wind = unitProgress(profile, "wind_mage")!;
-    expect(wind.level).toBe(2);
-    expect(wind.learnedSkills).toContain("push_wave");
-    expect(profile.inventory).toContain("oak_staff");
-    expect(levelUps.length).toBeGreaterThan(0);
-    expect(unitProgress(save.profile, "wind_mage")!.level).toBe(1); // 不改入参
+    expect(wind.skillSlots).toContain("tome_push_wave");
+    expect(skillIdsOf(wind.skillSlots, tables.items)).toContain("push_wave");
+    expect(autoEquipped).toEqual([{ itemId: "tome_push_wave", defId: "wind_mage" }]);
+
+    // 不改入参。
+    expect(unitProgress(save.profile, "wind_mage")!.skillSlots).not.toContain("tome_push_wave");
+    expect(save.profile.inventory).not.toContain("swift_charm");
   });
 });
 
 describe("两场可观测：新技能 + 装备在下一场生效", () => {
-  it("打完第二关、装备掉落后，第三关 wind_mage 拥有 push_wave 且速度更高", () => {
+  it("打完第一关，第二关 wind_mage 拥有横向推击且装备生效", () => {
     const save = initialSaveData();
-    const final = wonState(save.profile, "level_002");
-    const rewards = computeRewards(getLevel("level_002"), final, tables.levelRewards);
-    const { profile: profile2 } = applyRewards(save.profile, rewards, final, tables);
-    unitProgress(profile2, "wind_mage")!.equipped.accessory = "swift_charm"; // 装备疾风护符
+    const final = wonState(save.profile, "level_001");
+    const rewards = computeRewards(getLevel("level_001"), final, tables.levelRewards);
+    const { profile: profile2 } = applyRewards(save.profile, rewards, tables.items);
+    unitProgress(profile2, "wind_mage")!.equipped.accessory = "swift_charm"; // 装备掉落的疾风护符
 
-    const built3 = buildBattleState(profile2, getLevel("level_003"), registry, tables);
-    const windBuilt = built3.units.find((u) => u.defId === "wind_mage")!;
+    const built2 = buildBattleState(profile2, getLevel("level_002"), registry, tables);
+    const windBuilt = built2.units.find((u) => u.defId === "wind_mage")!;
     expect(windBuilt.skills).toContain("push_wave");
-    expect(windBuilt.stats.speed).toBeGreaterThan(registry.unit("wind_mage").stats.speed);
+    expect(windBuilt.stats.speed).toBe(registry.unit("wind_mage").stats.speed + 15);
   });
 });
 
-describe("新成员入队按平均等级补齐（技能自然解锁、留成长空间）", () => {
-  it("冰法师入队被拉到老兵平均级，解锁至该级、高级技能仍锁", () => {
-    const save = initialSaveData();
-    const curve = tables.progression.xpCurve;
-    // 老兵：火法师 5 级、风术士 3 级；冰法师仍是未出战的 1 级。
-    const fire = unitProgress(save.profile, "fire_mage")!;
-    Object.assign(fire, applyLevelUps(gainXp(fire, curve.xpToReach[5]), tables.progression).progress);
-    const wind = unitProgress(save.profile, "wind_mage")!;
-    Object.assign(wind, applyLevelUps(gainXp(wind, curve.xpToReach[3]), tables.progression).progress);
+describe("数据一致性：技能秘卷 / 掉落表 / 敌人覆盖表", () => {
+  const playerDefIds = ["wind_mage", "fire_mage", "lancer", "swordsman", "ice_mage"];
+  const skillItems = Object.values(tables.items).filter(isSkillItem);
 
-    const bumped = levelUpNewcomers(save.profile, getLevel("level_005"), tables.progression);
-    const ice = unitProgress(bumped, "ice_mage")!;
-    expect(ice.level).toBe(4); // round((5+3)/2)=4
-    expect(ice.learnedSkills).toContain("freeze"); // freeze@3 ≤ 4，自然解锁
-    expect(ice.learnedSkills).not.toContain("blizzard"); // blizzard@6 仍锁 → 成长空间
-    expect(ice.learnedSkills).not.toContain("frost_nova"); // frost_nova@10 仍锁
-    expect(ice.unspentPoints).toBe((4 - 1) * tables.progression.pointsPerLevel);
-    expect(unitProgress(save.profile, "ice_mage")!.level).toBe(1); // 不改入参
+  it("每个技能秘卷的 skillId 存在于注册表，usableBy 与 UnitDef.skills 一致", () => {
+    expect(skillItems.length).toBeGreaterThan(0);
+    for (const it of skillItems) {
+      expect(it.skillId, it.id).toBeTruthy();
+      expect(registry.hasSkill(it.skillId!), `${it.id} 的技能 ${it.skillId} 不存在`).toBe(true);
+      expect(it.usableBy?.length, `${it.id} 缺 usableBy`).toBeTruthy();
+      for (const defId of it.usableBy!) {
+        expect(registry.unit(defId).skills, `${defId} 的技能全集不含 ${it.skillId}`).toContain(it.skillId);
+      }
+    }
   });
 
-  it("首关无老兵（无 xp>0 单位）时不补偿", () => {
+  it("玩家全部技能恰好各有一个秘卷（不多不少）", () => {
+    const allSkills = new Set(playerDefIds.flatMap((id) => registry.unit(id).skills));
+    const tomeSkills = skillItems.map((it) => it.skillId!);
+    expect(new Set(tomeSkills).size).toBe(tomeSkills.length); // 每技能唯一秘卷
+    expect(new Set(tomeSkills)).toEqual(allSkills);
+  });
+
+  it("起始预装 ∪ 关卡掉落 ⊇ 全部技能（21 技全可获得），掉落 id 全部存在", () => {
     const save = initialSaveData();
-    expect(levelUpNewcomers(save.profile, getLevel("level_001"), tables.progression)).toBe(save.profile);
+    const obtainable = new Set<string>();
+    for (const up of save.profile.units) {
+      for (const s of skillIdsOf(up.skillSlots, tables.items)) obtainable.add(s);
+    }
+    for (const reward of Object.values(tables.levelRewards)) {
+      for (const id of reward.itemDrops) {
+        const def = tables.items[id];
+        expect(def, `掉落 ${id} 不存在于物品表`).toBeTruthy();
+        if (isSkillItem(def)) obtainable.add(def.skillId!);
+      }
+    }
+    const allSkills = new Set(playerDefIds.flatMap((id) => registry.unit(id).skills));
+    expect(obtainable).toEqual(allSkills);
+  });
+
+  it("破甲刺秘卷共 2 份（剑客起手 + 第 6 关掉落给枪兵）", () => {
+    const save = initialSaveData();
+    const startCount = save.profile.units.flatMap((u) => u.skillSlots).filter((id) => id === "tome_guard_break").length;
+    const dropCount = Object.values(tables.levelRewards)
+      .flatMap((r) => r.itemDrops)
+      .filter((id) => id === "tome_guard_break").length;
+    expect(startCount + dropCount).toBe(2);
+  });
+
+  it("levels.json 的 enemyStatOverrides 只覆盖本关真实出现的敌方 defId", () => {
+    for (const lv of levels) {
+      if (!lv.enemyStatOverrides) continue;
+      const present = new Set(lv.enemyUnits.map((u) => u.unitId));
+      for (const defId of Object.keys(lv.enemyStatOverrides)) {
+        expect(registry.unit(defId).faction, `${lv.id} 覆盖了非敌方单位 ${defId}`).toBe("enemy");
+        expect(present.has(defId), `${lv.id} 覆盖了未出场的 ${defId}`).toBe(true);
+      }
+    }
   });
 });
 
@@ -309,46 +283,22 @@ describe("剧情发展树", () => {
 });
 
 describe("存档序列化", () => {
-  it("往返一致；坏版本抛错", () => {
+  it("往返一致；坏版本抛错（含旧版 v3）", () => {
     const save = initialSaveData();
     const round = deserialize(serialize(save));
     expect(round).toEqual(save);
     expect(() => deserialize('{"version":99,"profile":{}}')).toThrow();
+    expect(() => deserialize('{"version":3,"profile":{"units":[]}}')).toThrow(); // 旧档不迁移
     expect(() => deserialize("not json")).toThrow();
-  });
-
-  it("v2 存档迁移：剔除普攻、补入基础技、普攻技能等级转移到基础技", () => {
-    const legacy = JSON.parse(JSON.stringify(initialSaveData())) as { version: number; profile: { units: Array<{ defId: string; learnedSkills: string[]; skillLevels: Record<string, number> }> } };
-    legacy.version = 2;
-    const wind = legacy.profile.units.find((u) => u.defId === "wind_mage")!;
-    wind.learnedSkills = ["normal_attack", "gale_gather", "push_wave"];
-    wind.skillLevels = { normal_attack: 3, gale_gather: 2 };
-    const lancer = legacy.profile.units.find((u) => u.defId === "lancer")!;
-    lancer.learnedSkills = ["normal_attack", "pierce_shot", "sweep"]; // 旧档已解锁 sweep：不应重复补入
-
-    const migrated = migrateLegacySave(legacy)!;
-    expect(migrated.version).toBe(3);
-    const w = unitProgress(migrated.profile, "wind_mage")!;
-    expect(w.learnedSkills).toEqual(["wind_blade", "gale_gather", "push_wave"]);
-    expect(w.skillLevels).toEqual({ wind_blade: 3, gale_gather: 2 }); // 普攻等级转移到基础技
-    const l = unitProgress(migrated.profile, "lancer")!;
-    expect(l.learnedSkills).toEqual(["pierce_shot", "sweep"]);
-    // 迁移产物可直接装配战斗（所有技能 id 均有效）。
-    const built = buildBattleState(migrated.profile, getLevel("level_003"), registry, tables);
-    for (const u of built.units) for (const id of u.skills) expect(registry.hasSkill(id)).toBe(true);
-  });
-
-  it("migrateLegacySave 对非 v2 结构返回 null", () => {
-    expect(migrateLegacySave(null)).toBeNull();
-    expect(migrateLegacySave({ version: 1, profile: {} })).toBeNull();
-    expect(migrateLegacySave({ version: 3, profile: { units: [] } })).toBeNull();
   });
 
   it("cloneProfile 深拷贝不共享引用", () => {
     const p = initialSaveData().profile;
     const c = cloneProfile(p);
-    c.units[0].learnedSkills.push("x");
-    expect(p.units[0].learnedSkills).not.toContain("x");
+    c.units[0].skillSlots[4] = "tome_cyclone";
+    c.inventory.push("x");
+    expect(p.units[0].skillSlots[4]).toBeNull();
+    expect(p.inventory).not.toContain("x");
   });
 });
 

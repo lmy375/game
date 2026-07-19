@@ -3,7 +3,7 @@
  */
 import { BattleState } from "../state/BattleState";
 import { Unit, isAlive, hasStatus, StatusId } from "../unit/Unit";
-import { Element, SkillDef } from "./Skill";
+import { Element } from "./Skill";
 import { BattleEvent } from "../state/events";
 import { TERRAIN_DAMAGE } from "../board/terrain";
 import { clone } from "../board/geometry";
@@ -13,20 +13,9 @@ export function attackStat(caster: Unit, element: Element): number {
   return element === "physical" ? caster.stats.attack : caster.stats.magic;
 }
 
-/** 技能等级倍率：1 级 = 1.0，之后每级加 skill.powerPerLevel。纯函数。 */
-export function skillPower(skillLevel: number, skill: SkillDef): number {
-  return 1 + Math.max(0, skillLevel - 1) * (skill.powerPerLevel ?? 0);
-}
-
-/** 计算一次伤害的最终值（含防御与易伤）。powerMult 为技能等级倍率（默认 1）。 */
-export function computeDamage(
-  caster: Unit,
-  target: Unit,
-  element: Element,
-  multiplier: number,
-  powerMult = 1
-): number {
-  const base = attackStat(caster, element) * multiplier * powerMult;
+/** 计算一次伤害的最终值（含防御与易伤）。 */
+export function computeDamage(caster: Unit, target: Unit, element: Element, multiplier: number): number {
+  const base = attackStat(caster, element) * multiplier;
   let dmg = base - target.stats.defense;
   if (hasStatus(target, "vulnerable")) dmg *= 1.5;
   return Math.max(1, Math.round(dmg));
@@ -96,7 +85,7 @@ export function triggerTerrain(state: BattleState, target: Unit, events: BattleE
   }
 }
 
-/** 死亡判定：对所有 hp<=0 但尚未标记的单位发出 unit_died（可带击杀者，用于战斗内经验归属）。 */
+/** 死亡判定：对所有 hp<=0 但尚未标记的单位发出 unit_died（可带击杀者，供表现层归因）。 */
 export function processDeaths(
   state: BattleState,
   events: BattleEvent[],
