@@ -50,8 +50,6 @@ export class BattleController implements SessionHost {
   private effects!: Effects;
   private events!: EventAnimator;
   private previewLabels: Text[] = [];
-  private boardScale = 1;
-  private boardOffset = { x: 0, y: 0 };
   /** 战役模式：抑制战斗自带 banner，结算交给 CampaignDirector。 */
   private campaign = false;
 
@@ -140,8 +138,6 @@ export class BattleController implements SessionHost {
 
   private layoutBoard(): void {
     const placement = this.stage.resizeForBoard(this.grid.pxWidth, this.grid.pxHeight);
-    this.boardScale = placement.scale;
-    this.boardOffset = { x: placement.x, y: placement.y };
     this.stage.world.scale.set(placement.scale);
     this.stage.world.position.set(placement.x, placement.y);
   }
@@ -166,6 +162,10 @@ export class BattleController implements SessionHost {
     }
     await this.events.play(events);
     this.units.sync(state);
+  }
+
+  delay(sec: number): Promise<void> {
+    return this.animator.wait(sec);
   }
 
   log(msg: string): void {
@@ -215,10 +215,8 @@ export class BattleController implements SessionHost {
 
   private pick(clientX: number, clientY: number): Position | null {
     const rect = this.stage.canvas.getBoundingClientRect();
-    const { sx, sy } = this.viewScale(rect);
-    const stageX = (clientX - rect.left) * sx;
-    const stageY = (clientY - rect.top) * sy;
-    return this.grid.pixelToCell((stageX - this.boardOffset.x) / this.boardScale, (stageY - this.boardOffset.y) / this.boardScale);
+    const p = this.clientToWorldPixel(clientX, clientY, rect);
+    return this.grid.pixelToCell(p.x, p.y);
   }
 
   /** 把浮动菜单定位到行动单位旁（贴右，越界翻左/夹紧）。 */
@@ -226,8 +224,8 @@ export class BattleController implements SessionHost {
     const rect = this.stage.canvas.getBoundingClientRect();
     const { sx, sy } = this.viewScale(rect);
     const c = this.grid.center(anchor);
-    const ax = (this.boardOffset.x + c.x * this.boardScale) / sx;
-    const ay = (this.boardOffset.y + c.y * this.boardScale) / sy;
+    const ax = (this.stage.world.position.x + c.x * this.stage.world.scale.x) / sx;
+    const ay = (this.stage.world.position.y + c.y * this.stage.world.scale.y) / sy;
     const menuW = menu.offsetWidth || 150;
     const menuH = menu.offsetHeight || 0;
     let left = ax + 30;
@@ -237,6 +235,16 @@ export class BattleController implements SessionHost {
     top = Math.max(0, Math.min(top, rect.height - menuH));
     menu.style.left = `${left}px`;
     menu.style.top = `${top}px`;
+  }
+
+  private clientToWorldPixel(clientX: number, clientY: number, rect: DOMRect): { x: number; y: number } {
+    const { sx, sy } = this.viewScale(rect);
+    const stageX = (clientX - rect.left) * sx;
+    const stageY = (clientY - rect.top) * sy;
+    return {
+      x: (stageX - this.stage.world.position.x) / this.stage.world.scale.x,
+      y: (stageY - this.stage.world.position.y) / this.stage.world.scale.y,
+    };
   }
 
   // ---------- 预览伤害飘标（静态 Pixi 文本，随刷新清空）----------

@@ -378,7 +378,7 @@ export class CampaignDirector {
 
   private persist(): void {
     this.profile.storyNodeId = this.nodeId;
-    this.deps.store.save({ version: 2, profile: this.profile });
+    this.deps.store.save({ version: 3, profile: this.profile });
   }
 
   // ---------- VM 构建 ----------
@@ -401,7 +401,7 @@ export class CampaignDirector {
       text: l.text,
       portrait: l.glyph ? this.portraitForGlyph(l.glyph, l.speaker) : undefined,
     }));
-    return { nodeId: node.id, lines, cursor: this.cursor, continueLabel: "点击任意位置继续" };
+    return { nodeId: node.id, lines, cursor: this.cursor, continueLabel: "点击任意位置继续", skipLabel: "跳过" };
   }
 
   /** 用缓存的静态部分 + 实时加点面板重渲染胜利结算屏。 */

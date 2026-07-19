@@ -94,10 +94,30 @@ describe("CampaignDirector 流程编排", () => {
     for (let i = 0; i < 6; i++) director.advanceCutscene();
     expect(host.battle).toBeTruthy();
     expect(host.hidden).toBeGreaterThan(0);
-    // 第一关火法师单人出战：起手无 fire_bolt（3 级才解锁）。
+    // 第一关火法师单人出战：起手基础技+招牌技，flame_wall（6 级）未解锁。
     const players = host.battle!.state.units.filter((u) => u.faction === "player");
     expect(players.map((u) => u.defId)).toEqual(["fire_mage"]);
-    expect(players[0].skills).not.toContain("fire_bolt");
+    expect(players[0].skills).toEqual(["fire_bolt", "cross_fire"]);
+    expect(players[0].skills).not.toContain("flame_wall");
+  });
+
+  it("过场 VM 带跳过文案；skipCutscene 不逐行、直接进入下一节点（战斗）", () => {
+    director.boot();
+    director.newGame();
+    expect(host.cutscene!.skipLabel).toBe("跳过");
+    director.advanceCutscene(); // 已推进一行，跳过应无视 cursor 位置
+    director.skipCutscene();
+    expect(host.battle).toBeTruthy();
+    expect(host.hidden).toBeGreaterThan(0);
+  });
+
+  it("skipCutscene 在非过场节点（战斗中）是无害的空操作", () => {
+    director.boot();
+    director.newGame();
+    for (let i = 0; i < 6; i++) director.advanceCutscene(); // → 战斗
+    const battle = host.battle;
+    director.skipCutscene();
+    expect(host.battle).toBe(battle); // 未重建战斗、未跳节点
   });
 
   it("胜利 → 结算屏含经验/升级/掉落；primary 推进到下一过场", () => {

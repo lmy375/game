@@ -58,6 +58,16 @@
     ]
   },
   {
+    "id": "line_2",
+    "name": "短直线",
+    "anchor": "caster_direction",
+    "rotatable": true,
+    "cells": [
+      { "dx": 0, "dy": 1, "effectKey": "path" },
+      { "dx": 0, "dy": 2, "effectKey": "path" }
+    ]
+  },
+  {
     "id": "line_4",
     "name": "贯穿直线",
     "anchor": "caster_direction",

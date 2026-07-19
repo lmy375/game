@@ -29,17 +29,24 @@ const TUTORIAL_LEVEL: LevelDef = {
   winCondition: { type: "defeat_all_enemies" },
 };
 
-/** 引擎无关的假 Host：捕获最近一帧 ViewModel 与全部呈现事件，无 DOM/引擎。 */
+/** 引擎无关的假 Host：捕获最近一帧 ViewModel、全部帧与呈现事件的时间线，无 DOM/引擎。 */
 class CaptureHost implements SessionHost {
   readonly animates = false;
   vm!: ViewModel;
   events: BattleEvent[] = [];
+  /** 全部渲染帧（按时间顺序）。 */
+  frames: ViewModel[] = [];
+  /** render/applyEvents 交错时间线，用于断言「预告帧出现在动作事件之前」。 */
+  timeline: ({ kind: "frame"; vm: ViewModel } | { kind: "events"; events: BattleEvent[] })[] = [];
   setupLevel(): void {}
   render(vm: ViewModel): void {
     this.vm = vm;
+    this.frames.push(vm);
+    this.timeline.push({ kind: "frame", vm });
   }
   applyEvents(events: BattleEvent[]): void {
     this.events.push(...events); // 无动画：同步即终态
+    this.timeline.push({ kind: "events", events });
   }
   log(): void {}
   clearLog(): void {}
@@ -76,9 +83,9 @@ describe("交互状态机冒烟（BattleSession，引擎无关）", () => {
 
   it("技能菜单使用明确短文案，不截断百分比数值", () => {
     session.tapCell({ x: 1, y: 2 });
-    const normal = host.vm.menu.skills.find((s) => s.id === "normal_attack");
-    expect(normal?.short).toContain("100%");
-    expect(normal?.short).not.toBe("对相邻的一个敌人造成 1");
+    const blade = host.vm.menu.skills.find((s) => s.id === "wind_blade");
+    expect(blade?.short).toContain("100%");
+    expect(blade?.short).not.toMatch(/造成 1$/); // 回归：短文案不得截断自完整描述
   });
 
   it("移动后技能菜单自动展开，且单位移动到落点", () => {
@@ -118,7 +125,7 @@ describe("交互状态机冒烟（BattleSession，引擎无关）", () => {
   it("右键取消：未瞄准时收起菜单；瞄准中退出瞄准回到菜单", () => {
     session.tapCell({ x: 1, y: 2 }); // 展开菜单
     expect(host.vm.menu.visible).toBe(true);
-    session.selectSkill("normal_attack"); // 进入瞄准 → 菜单隐藏（不挡棋盘）
+    session.selectSkill("wind_blade"); // 进入瞄准 → 菜单隐藏（不挡棋盘）
     expect(host.vm.menu.visible).toBe(false);
     session.cancel(); // 右键：退出瞄准，菜单恢复
     expect(host.vm.menu.visible).toBe(true);
@@ -186,5 +193,106 @@ describe("交互状态机冒烟（BattleSession，引擎无关）", () => {
     await flush();
     const st: BattleState = state();
     expect(st.outcome !== null || host.vm.turnText.includes("我方行动")).toBe(true);
+  });
+});
+
+describe("敌方威胁范围（我方回合常显）", () => {
+  let host: CaptureHost;
+  let session: BattleSession;
+
+  beforeEach(() => {
+    host = new CaptureHost();
+    session = new BattleSession(registry, host);
+    session.load(TUTORIAL_LEVEL);
+  });
+
+  it("我方回合初始帧即显示威胁区：含敌人所在格与攻击延伸格，移动范围照常", () => {
+    const o = host.vm.overlay;
+    expect(o.moveCells?.length).toBeGreaterThan(0);
+    expect(o.threatMoveCells?.length).toBeGreaterThan(0);
+    expect(o.threatAttackCells?.length).toBeGreaterThan(0);
+    // 敌兵站位格必在威胁移动层内
+    expect(o.threatMoveCells).toContainEqual({ x: 3, y: 4 });
+    // 两层互斥
+    const mv = new Set(o.threatMoveCells!.map((p) => `${p.x},${p.y}`));
+    for (const p of o.threatAttackCells!) expect(mv.has(`${p.x},${p.y}`)).toBe(false);
+  });
+
+  it("进入技能瞄准隐藏威胁区，取消后恢复", () => {
+    session.tapCell({ x: 1, y: 2 }); // 展开菜单（非瞄准）→ 威胁仍显示
+    expect(host.vm.overlay.threatMoveCells?.length).toBeGreaterThan(0);
+    session.selectSkill("wind_blade"); // 瞄准 → 隐藏
+    expect(host.vm.overlay.threatMoveCells).toBeUndefined();
+    expect(host.vm.overlay.threatAttackCells).toBeUndefined();
+    session.cancel(); // 退出瞄准 → 恢复
+    expect(host.vm.overlay.threatMoveCells?.length).toBeGreaterThan(0);
+  });
+
+  it("暂定移动后威胁区随新 state 重算（仍存在且不报错）", () => {
+    session.tapCell({ x: 1, y: 2 });
+    session.tapCell({ x: 2, y: 2 }); // 暂定移动 → state 引用更换
+    expect(host.vm.overlay.threatMoveCells?.length).toBeGreaterThan(0);
+    session.undoMove();
+    expect(host.vm.overlay.threatMoveCells?.length).toBeGreaterThan(0);
+  });
+});
+
+describe("敌方行动预告（先亮范围再行动）", () => {
+  /** 一对一小关卡：敌兵距风术士 4 格，必须先移动再劈砍。 */
+  const DUEL_LEVEL: LevelDef = {
+    id: "test_duel",
+    name: "对决",
+    playerFirst: true,
+    board: { width: 8, height: 3, tiles: [] },
+    playerUnits: [{ unitId: "wind_mage", x: 0, y: 1 }],
+    enemyUnits: [{ unitId: "enemy_soldier", x: 4, y: 1 }],
+    winCondition: { type: "defeat_all_enemies" },
+  };
+
+  it("移动前出现移动范围预告帧（基于移动前位置），技能前出现命中格预告帧，回合结束后清除", async () => {
+    const host = new CaptureHost();
+    const session = new BattleSession(registry, host);
+    session.load(DUEL_LEVEL);
+
+    // CT 制下风术士速度更高可能连动多次：持续让行动，直到敌兵移动过（有上限护栏）。
+    for (let i = 0; i < 10 && !host.events.some((e) => e.type === "unit_moved"); i++) {
+      session.endActiveUnit();
+      await flush();
+    }
+
+    // 时间线中：移动预告帧必须先于敌方 unit_moved 事件
+    const moveTelegraphIdx = host.timeline.findIndex(
+      (t) => t.kind === "frame" && (t.vm.overlay.enemyMoveCells?.length ?? 0) > 0
+    );
+    const enemyMovedIdx = host.timeline.findIndex(
+      (t) => t.kind === "events" && t.events.some((e) => e.type === "unit_moved")
+    );
+    expect(enemyMovedIdx).toBeGreaterThan(-1); // 敌兵必须移动（劈砍够不着）
+    expect(moveTelegraphIdx).toBeGreaterThan(-1);
+    expect(moveTelegraphIdx).toBeLessThan(enemyMovedIdx);
+
+    // 预告基于移动前位置：从 (4,1) 出发 moveRange=3 可达 (7,1)；移动后不可能
+    const telegraph = host.timeline[moveTelegraphIdx] as { kind: "frame"; vm: ViewModel };
+    expect(telegraph.vm.overlay.enemyMoveCells).toContainEqual({ x: 7, y: 1 });
+
+    // 敌兵移动 3 格后与法师相邻，必然劈砍：命中格预告帧必须先于 skill_cast 事件
+    const castIdx = host.timeline.findIndex(
+      (t) => t.kind === "events" && t.events.some((e) => e.type === "skill_cast")
+    );
+    expect(castIdx).toBeGreaterThan(-1);
+    const hitTelegraphIdx = host.timeline.findIndex(
+      (t) =>
+        t.kind === "frame" &&
+        ((t.vm.overlay.hitCenter?.length ?? 0) > 0 || (t.vm.overlay.hitArm?.length ?? 0) > 0)
+    );
+    expect(hitTelegraphIdx).toBeGreaterThan(-1);
+    expect(hitTelegraphIdx).toBeLessThan(castIdx);
+
+    // 轮回我方后：预告清除，威胁区恢复显示
+    expect(host.vm.turnText).toContain("我方行动");
+    expect(host.vm.overlay.enemyMoveCells).toBeUndefined();
+    expect(host.vm.overlay.hitCenter).toBeUndefined();
+    expect(host.vm.overlay.hitArm).toBeUndefined();
+    expect(host.vm.overlay.threatMoveCells?.length).toBeGreaterThan(0);
   });
 });

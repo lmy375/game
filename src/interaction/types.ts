@@ -35,6 +35,12 @@ export interface OverlayVM {
   hazardWarn?: Position[];
   /** 暂定移动时单位的起点标记。 */
   originCell?: Position;
+  /** 我方回合：全体存活敌人的 当前格∪可达格（威胁区移动层，垫底渲染）。 */
+  threatMoveCells?: Position[];
+  /** 我方回合：敌人从可达站位能命中、但不在 threatMoveCells 内的攻击延伸格（更淡一档）。 */
+  threatAttackCells?: Position[];
+  /** 敌方回合：当前行动敌人移动前的移动范围预告。 */
+  enemyMoveCells?: Position[];
 }
 
 export interface SkillButtonVM {
@@ -155,6 +161,8 @@ export interface SessionHost {
    * @param state 事件结算后的最终状态（动画层据此 sync 单位与血条）。
    */
   applyEvents(events: BattleEvent[], opts: ApplyOpts, state: BattleState): Promise<void> | void;
+  /** 可选：等待 sec 秒（用于敌方行动预告的节奏停顿）。无动画表现层可不实现。 */
+  delay?(sec: number): Promise<void>;
   log(msg: string): void;
   clearLog(): void;
 }

@@ -10,6 +10,7 @@ import { portraitUrlFor } from "./AssetManifest";
 export interface ScreenHandlers {
   title(id: "new" | "continue" | "loadout"): void;
   cutsceneNext(): void;
+  cutsceneSkip(): void;
   resultPrimary(): void;
   resultSecondary(): void;
   allocateStat(defId: string, stat: keyof UnitStats): void;
@@ -102,12 +103,20 @@ export class DomScreens {
       })
       .join("");
     this.open(
-      `<div class="cutscene-lines">${linesHtml}</div>` +
+      `<button class="cutscene-skip" data-id="skip">${vm.skipLabel} ≫</button>` +
+        `<div class="cutscene-lines">${linesHtml}</div>` +
         `<div class="btn-row"><button class="screen-btn" data-id="next">${vm.continueLabel}</button></div>`
     );
     // 剧情期间点屏幕任意位置即可继续（含遮罩背景与继续按钮，冒泡到 root 统一处理，只触发一次）。
     this.root.classList.add("cutscene-active");
     this.root.onclick = () => this.handlers.cutsceneNext();
+    // 「跳过」独立于「点任意处继续」：阻止冒泡，避免同一次点击又触发一次推进。
+    const skip = this.root.querySelector<HTMLButtonElement>(`button[data-id="skip"]`);
+    if (skip)
+      skip.onclick = (ev) => {
+        ev.stopPropagation();
+        this.handlers.cutsceneSkip();
+      };
   }
 
   showResult(vm: ResultVM): void {

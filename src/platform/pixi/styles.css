@@ -252,6 +252,15 @@ body.screen-active footer { visibility: hidden; }
 .portrait-enemy { background-color: #d9534f; }
 .portrait-tank { background-color: #8a3b38; }
 .portrait-narr { background-color: #3a4150; font-size: 18px; }
+/* 过场「跳过」按钮：钉在对话面板右上角，弱化视觉以免抢正文。 */
+.screen-root.cutscene-active .screen { position: relative; }
+.cutscene-skip {
+  position: absolute; top: 12px; right: 14px; z-index: 1;
+  background: rgba(255, 255, 255, .04); color: var(--muted);
+  border: 1px solid var(--line); border-radius: 999px;
+  font-size: 12px; padding: 5px 14px;
+}
+.cutscene-skip:hover { color: var(--text); }
 .cutscene-lines { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
 .cutscene-line { display: flex; gap: 12px; align-items: center; text-align: left; }
 .cut-speaker { color: var(--accent); font-size: 12px; font-weight: 700; margin-bottom: 2px; }

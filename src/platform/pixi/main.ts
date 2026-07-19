@@ -35,6 +35,7 @@ async function main(): Promise<void> {
     title: (id) =>
       id === "new" ? director.newGame() : id === "continue" ? director.continueGame() : director.openLoadout("title"),
     cutsceneNext: () => director.advanceCutscene(),
+    cutsceneSkip: () => director.skipCutscene(),
     resultPrimary: () => director.onResultPrimary(),
     resultSecondary: () => director.openLoadout("result"),
     allocateStat: (defId, stat) => director.allocateStat(defId, stat),

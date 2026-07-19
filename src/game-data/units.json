@@ -4,35 +4,35 @@
     "name": "风术士",
     "faction": "player",
     "stats": { "hp": 100, "attack": 20, "magic": 30, "defense": 8, "moveRange": 4, "speed": 60 },
-    "skills": ["normal_attack", "gale_gather", "push_wave", "wind_blade", "cyclone", "tempest"]
+    "skills": ["wind_blade", "gale_gather", "push_wave", "cyclone", "tempest"]
   },
   {
     "id": "fire_mage",
     "name": "火法师",
     "faction": "player",
     "stats": { "hp": 90, "attack": 16, "magic": 34, "defense": 7, "moveRange": 3, "speed": 45 },
-    "skills": ["normal_attack", "cross_fire", "fire_bolt", "flame_wall", "inferno"]
+    "skills": ["fire_bolt", "cross_fire", "flame_wall", "inferno"]
   },
   {
     "id": "lancer",
     "name": "枪兵",
     "faction": "player",
     "stats": { "hp": 110, "attack": 28, "magic": 8, "defense": 10, "moveRange": 4, "speed": 55 },
-    "skills": ["normal_attack", "pierce_shot", "swap_skill", "sweep", "guard_break", "charge_thrust"]
+    "skills": ["sweep", "pierce_shot", "swap_skill", "guard_break", "charge_thrust"]
   },
   {
     "id": "swordsman",
     "name": "剑客",
     "faction": "player",
     "stats": { "hp": 120, "attack": 30, "magic": 5, "defense": 11, "moveRange": 4, "speed": 58 },
-    "skills": ["normal_attack", "guard_break", "crescent_slash", "whirlwind_slash", "mortal_strike"]
+    "skills": ["crescent_slash", "guard_break", "whirlwind_slash", "mortal_strike"]
   },
   {
     "id": "ice_mage",
     "name": "冰法师",
     "faction": "player",
     "stats": { "hp": 95, "attack": 14, "magic": 32, "defense": 8, "moveRange": 3, "speed": 42 },
-    "skills": ["normal_attack", "frost_bolt", "freeze", "frost_nova", "blizzard"]
+    "skills": ["frost_bolt", "freeze", "frost_nova", "blizzard"]
   },
   {
     "id": "enemy_soldier",
@@ -40,7 +40,7 @@
     "faction": "enemy",
     "aiProfile": "melee",
     "stats": { "hp": 80, "attack": 18, "magic": 0, "defense": 6, "moveRange": 3, "speed": 50 },
-    "skills": ["normal_attack"]
+    "skills": ["cleave"]
   },
   {
     "id": "enemy_archer",
@@ -48,7 +48,7 @@
     "faction": "enemy",
     "aiProfile": "ranged",
     "stats": { "hp": 55, "attack": 16, "magic": 0, "defense": 3, "moveRange": 3, "speed": 70 },
-    "skills": ["ranged_shot", "normal_attack"]
+    "skills": ["ranged_shot"]
   },
   {
     "id": "enemy_heavy",
@@ -56,6 +56,6 @@
     "faction": "enemy",
     "aiProfile": "tank",
     "stats": { "hp": 140, "attack": 22, "magic": 0, "defense": 12, "moveRange": 2, "speed": 30 },
-    "skills": ["normal_attack"]
+    "skills": ["cleave", "heavy_smash"]
   }
 ]

@@ -81,7 +81,7 @@ export class DomHud {
       const btn = document.createElement("button");
       btn.className = "skill-btn";
       btn.disabled = s.disabled;
-      const icon = skillIconUrls[s.id as keyof typeof skillIconUrls] ?? skillIconUrls.normal_attack;
+      const icon = skillIconUrls[s.id as keyof typeof skillIconUrls] ?? skillIconUrls.fallback;
       btn.innerHTML = `<span class="skill-icon" style="background-image:url('${icon}')"></span><span class="skill-copy"><b>${s.name}</b><small>${s.short}</small></span>`;
       btn.title = s.full;
       btn.onclick = () => this.handlers.selectSkill(s.id);

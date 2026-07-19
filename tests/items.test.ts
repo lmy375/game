@@ -20,7 +20,7 @@ const tables = loadMetaTables();
 /** 造一个只有一个玩家单位的 profile。 */
 function soloProfile(): PlayerProfile {
   return {
-    units: [{ defId: "wind_mage", level: 1, xp: 0, learnedSkills: ["normal_attack"], equipped: emptyEquipped(), unspentPoints: 0, allocated: {}, skillLevels: {} }],
+    units: [{ defId: "wind_mage", level: 1, xp: 0, learnedSkills: ["wind_blade"], equipped: emptyEquipped(), unspentPoints: 0, allocated: {}, skillLevels: {} }],
     inventory: [],
     storyNodeId: "n",
   };
@@ -161,7 +161,7 @@ describe("BattleSession：战斗内使用消耗品", () => {
     const consumed: string[] = [];
     const battleItems: BattleItem[] = [{ itemId: "minor_potion", name: "初级药水", description: "", effect: { type: "heal", amount: 30 }, range: 1, count: 2 }];
     // 单个玩家单位（受伤），一个远处敌人（不干扰）。用 buildState 注入自定义 state。
-    const hero = makeUnit("player", { x: 1, y: 1 }, { instanceId: "p1", name: "英雄", faction: "player", skills: ["normal_attack"], hp: 40, maxHp: 100, stats: { hp: 100 }, ct: 100 });
+    const hero = makeUnit("player", { x: 1, y: 1 }, { instanceId: "p1", name: "英雄", faction: "player", skills: ["wind_blade"], hp: 40, maxHp: 100, stats: { hp: 100 }, ct: 100 });
     const enemy = makeUnit("enemy", { x: 4, y: 4 }, { instanceId: "e1", faction: "enemy", ct: 0 });
     const state = makeState(6, 6, [hero, enemy]);
     state.activeUnitId = "p1";

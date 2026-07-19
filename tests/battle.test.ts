@@ -14,7 +14,7 @@ import {
   restHealAmount,
 } from "@core/index";
 import { createRegistry, getLevel } from "@data/index";
-import { makeState, makeUnit } from "./helpers";
+import { castFirstDamagingSkill, makeState, makeUnit } from "./helpers";
 
 const registry = createRegistry();
 
@@ -99,7 +99,7 @@ describe("狂风聚拢：为 AOE 创造阵型", () => {
 
   it("教学连招：狂风聚拢后十字火焰命中全部敌人", () => {
     // 自带布局：风术士聚拢三名纵向散布的敌人，火法师再用十字火焰一网打尽。
-    const wind = makeUnit("player", { x: 1, y: 4 }, { defId: "wind_mage", skills: ["gale_gather", "normal_attack"], stats: { magic: 30, moveRange: 4 } });
+    const wind = makeUnit("player", { x: 1, y: 4 }, { defId: "wind_mage", skills: ["gale_gather", "wind_blade"], stats: { magic: 30, moveRange: 4 } });
     const fire = makeUnit("player", { x: 2, y: 4 }, { defId: "fire_mage", skills: ["cross_fire"], stats: { magic: 40, moveRange: 4 } });
     const e1 = makeUnit("enemy", { x: 5, y: 2 }, { defId: "enemy_soldier", stats: { hp: 60, attack: 0, magic: 0, defense: 0, moveRange: 0 } });
     const e2 = makeUnit("enemy", { x: 5, y: 6 }, { defId: "enemy_soldier", stats: { hp: 60, attack: 0, magic: 0, defense: 0, moveRange: 0 } });
@@ -235,8 +235,8 @@ describe("敌人 AI", () => {
   });
 
   it("当前敌方单位会靠近玩家", () => {
-    const enemy = makeUnit("enemy", { x: 9, y: 5 }, { defId: "enemy_soldier", aiProfile: "melee", skills: ["normal_attack"], stats: { hp: 80, attack: 18, magic: 0, defense: 6, moveRange: 3 } });
-    const player = makeUnit("player", { x: 2, y: 5 }, { skills: ["normal_attack"] });
+    const enemy = makeUnit("enemy", { x: 9, y: 5 }, { defId: "enemy_soldier", aiProfile: "melee", skills: ["cleave"], stats: { hp: 80, attack: 18, magic: 0, defense: 6, moveRange: 3 } });
+    const player = makeUnit("player", { x: 2, y: 5 }, { skills: ["sweep"] });
     const state = makeState(12, 12, [enemy, player]); // enemy 为 units[0]，即当前行动单位
     const sim = new BattleSimulator(registry);
     const ai = new EnemyAI(registry, sim);
@@ -270,7 +270,7 @@ describe("完整对局可推进（速度初动）", () => {
         continue;
       }
 
-      // 玩家单位简单策略：靠近最近敌人，能相邻就普攻，然后结束行动。
+      // 玩家单位简单策略：靠近最近敌人，放第一个能伤敌的技能，然后结束行动。
       const enemies = livingUnits(state, "enemy");
       if (enemies.length === 0) break;
       const target = enemies[0];
@@ -286,12 +286,7 @@ describe("完整对局可推进（速度初动）", () => {
           if (r.ok) state = r.nextState;
         }
       }
-      const me = unitById(state, actor.instanceId)!;
-      const adj = livingUnits(state, "enemy").find((e) => Math.abs(e.pos.x - me.pos.x) + Math.abs(e.pos.y - me.pos.y) === 1);
-      if (adj) {
-        const r = sim.simulate(state, { type: "skill", actorId: actor.instanceId, skillId: "normal_attack", targetCell: adj.pos });
-        if (r.ok) state = r.nextState;
-      }
+      state = castFirstDamagingSkill(state, sim, actor.instanceId);
       state = sim.simulate(state, { type: "end_turn" }).nextState;
     }
     expect(state.outcome).not.toBeNull();

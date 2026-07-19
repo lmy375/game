@@ -14,6 +14,7 @@ export * from "./skill/combat";
 export * from "./skill/resolveSkill";
 export * from "./displacement/displacement";
 export * from "./pathfinding/pathfinding";
+export * from "./threat/threat";
 export * from "./content/Registry";
 export * from "./content/Level";
 export * from "./turn/turn";

@@ -40,6 +40,8 @@ import {
   chebyshev,
   restHealAmount,
   UnitStats,
+  computeThreatCells,
+  ThreatCells,
 } from "@core/index";
 import {
   SessionHost,
@@ -56,6 +58,10 @@ import {
 } from "./types";
 
 type Pending = { cell?: Position; direction?: Direction; unitId?: string } | null;
+
+/** 敌方行动预告的停顿时长（秒）：先亮范围再动，给玩家读盘时间。 */
+const TELEGRAPH_MOVE_SEC = 0.5;
+const TELEGRAPH_SKILL_SEC = 0.65;
 
 /** 流程编排用的可选钩子。都不传 = 独立单场战斗（行为与原先完全一致）。 */
 export interface BattleSessionHooks {
@@ -103,6 +109,10 @@ export class BattleSession {
   private aimLocked = false;
   /** 暂定移动：base 为可回退状态，unitId 为该单位。 */
   private preMove: { base: BattleState; unitId: string } | null = null;
+  /** 敌方行动预告（移动范围/命中格），仅在 AI 回合动作播放前后短暂存在。 */
+  private aiTelegraph: Pick<OverlayVM, "enemyMoveCells" | "hitCenter" | "hitArm"> | null = null;
+  /** 威胁区缓存：state 引用变化（每次 simulate/undo 都换新对象）即失效重算。 */
+  private threatCache: { state: BattleState; cells: ThreatCells } | null = null;
 
   constructor(
     private readonly registry: ContentRegistry,
@@ -546,6 +556,7 @@ export class BattleSession {
       this.render();
       const actions = this.ai.planTurn(this.state);
       for (const act of actions) {
+        await this.telegraphAiAction(act);
         const res = this.sim.simulate(this.state, act);
         if (res.ok) {
           this.state = res.nextState;
@@ -553,16 +564,56 @@ export class BattleSession {
           this.logEvents(events);
           if (act.type !== "end_turn") {
             await this.host.applyEvents(events, { kind: "ai" }, this.state);
-            this.render();
           }
         }
+        this.aiTelegraph = null;
+        if (act.type !== "end_turn") this.render();
         if (this.state.outcome) break;
       }
+      this.aiTelegraph = null;
       this.busy = false;
     }
     this.busy = false;
     this.render();
     this.checkEnd();
+  }
+
+  /**
+   * 敌方动作预告：动画播放前先亮出范围并停顿，给玩家读盘时间。
+   * move → 该敌人的移动范围（基于移动前 state）；skill → 实际命中格；其余动作不预告。
+   */
+  private async telegraphAiAction(act: BattleAction): Promise<void> {
+    if (act.type === "move") {
+      this.aiTelegraph = { enemyMoveCells: computeMoveRange(this.state, act.actorId) };
+      this.render();
+      await this.aiPause(TELEGRAPH_MOVE_SEC);
+    } else if (act.type === "skill") {
+      const preview = previewSkill(this.state, this.sim, this.registry, act.actorId, act.skillId, {
+        cell: act.targetCell,
+        direction: act.direction,
+        unitId: act.targetUnitId,
+      });
+      if (!preview.ok) return;
+      this.aiTelegraph = {
+        hitCenter: preview.hitCells.filter((c) => c.effectKey === "center").map((c) => c.pos),
+        hitArm: preview.hitCells.filter((c) => c.effectKey !== "center").map((c) => c.pos),
+      };
+      this.render();
+      await this.aiPause(TELEGRAPH_SKILL_SEC);
+    }
+  }
+
+  /** 预告停顿：只有带动画且实现了 delay 的表现层才真正等待（测试 host 零延时）。 */
+  private aiPause(sec: number): Promise<void> {
+    return this.host.animates && this.host.delay ? this.host.delay(sec) : Promise.resolve();
+  }
+
+  /** 敌方威胁区（按 state 引用缓存；我方暂定移动会换 state，威胁随之重算）。 */
+  private threat(): ThreatCells {
+    if (this.threatCache?.state !== this.state) {
+      this.threatCache = { state: this.state, cells: computeThreatCells(this.state, this.registry) };
+    }
+    return this.threatCache.cells;
   }
 
   private checkEnd(): boolean {
@@ -602,7 +653,11 @@ export class BattleSession {
   private buildOverlay(active: Unit | undefined, myTurn: boolean): OverlayVM {
     const overlay: OverlayVM = { hoverCell: this.hover ?? undefined };
     if (active) overlay.selectedUnitId = active.instanceId;
-    if (!active || !myTurn) return overlay;
+    if (!active || !myTurn) {
+      // 敌方回合：叠加行动预告（移动范围/命中格）。
+      if (this.aiTelegraph) Object.assign(overlay, this.aiTelegraph);
+      return overlay;
+    }
 
     if (this.preMove?.unitId === active.instanceId) {
       const start = unitById(this.preMove.base, active.instanceId);
@@ -619,6 +674,12 @@ export class BattleSession {
       this.applyPreview(overlay);
     } else if (this.canMove(active)) {
       overlay.moveCells = computeMoveRange(this.moveBase(active), active.instanceId);
+    }
+    // 非瞄准状态（移动/菜单阶段）常显敌方威胁区；瞄准时隐藏，避免与施法高亮糊在一起。
+    if (!this.activeSkill && !this.activeItem) {
+      const threat = this.threat();
+      overlay.threatMoveCells = threat.moveCells;
+      overlay.threatAttackCells = threat.attackCells;
     }
     return overlay;
   }

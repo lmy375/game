@@ -19,6 +19,11 @@ const HL: Record<string, Style> = {
   hitCenter: { color: 0xe8503f, alpha: 0.58 },
   origin: { color: 0x9fb4d0, alpha: 0.3 },
   hover: { color: 0xffffff, alpha: 0.16 },
+  // 敌方威胁区（我方回合常显）：玫红两档，垫在所有高亮之下，alpha 必须低于 hazard。
+  threatAttack: { color: 0xd8486e, alpha: 0.12 },
+  threatMove: { color: 0xd8486e, alpha: 0.2 },
+  // 敌方回合移动预告：橙色，与我方天蓝移动范围区分。
+  enemyMove: { color: 0xff9a4d, alpha: 0.38, edge: 0xffd9ad, edgeAlpha: 0.6 },
 };
 
 /** 贴合等距菱形的高亮 + 落点虚框 + 位移箭头。每次刷新整体重建。 */
@@ -33,7 +38,10 @@ export class OverlayView {
 
   show(o: Overlay): void {
     this.clear();
+    this.cells(o.threatAttackCells, HL.threatAttack);
+    this.cells(o.threatMoveCells, HL.threatMove);
     this.cells(o.moveCells, HL.move);
+    this.cells(o.enemyMoveCells, HL.enemyMove);
     this.cells(o.castCells, HL.cast);
     this.cells(o.hazardWarn, HL.hazard);
     this.cells(o.hitArm, HL.hitArm);

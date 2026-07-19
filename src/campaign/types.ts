@@ -33,6 +33,8 @@ export interface CutsceneVM {
   lines: CutsceneLineVM[];
   cursor: number;
   continueLabel: string;
+  /** 「跳过」按钮文案：一键跳过整段剧情，直接进入下一节点。 */
+  skipLabel: string;
 }
 
 export interface ResultLevelUpVM {

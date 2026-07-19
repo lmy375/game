@@ -9,8 +9,7 @@ export type Element = "physical" | "fire" | "wind" | "ice";
 export type CastRange =
   | { type: "self" } // 以施法者自身为中心
   | { type: "distance"; min: number; max: number } // 距离施法者 min..max 格内任意格
-  | { type: "direction" } // 上下左右四方向之一
-  | { type: "melee" }; // 相邻 1 格（普通攻击）
+  | { type: "direction" }; // 上下左右四方向之一
 
 /** 技能选择目标的方式。 */
 export type TargetType = "cell" | "unit" | "direction";

@@ -1,21 +1,5 @@
 [
   {
-    "id": "normal_attack",
-    "name": "普通攻击",
-    "description": "对相邻的一个敌人造成 100% 物理伤害。",
-    "shortDescription": "相邻单体 100% 物伤",
-    "castRange": { "type": "melee" },
-    "patternId": "single",
-    "targetType": "cell",
-    "targetFilter": "enemy",
-    "cooldown": 0,
-    "powerPerLevel": 0.08,
-    "aiHint": "attack",
-    "cellEffects": {
-      "center": [{ "type": "damage", "element": "physical", "multiplier": 1.0 }]
-    }
-  },
-  {
     "id": "cross_fire",
     "name": "十字火焰",
     "description": "对目标点及上下左右造成火焰伤害，中心更高并附加燃烧。聚怪后收益最大。",
@@ -102,34 +86,35 @@
   },
   {
     "id": "ranged_shot",
-    "name": "远程射击",
-    "description": "对 1-3 格内一个敌人造成物理伤害。",
-    "shortDescription": "1-3 格单体物伤",
+    "name": "散射箭",
+    "description": "向 1-3 格内目标点射出一蓬箭雨，命中点及上下左右的敌人。",
+    "shortDescription": "1-3 格小十字 100% 物伤",
     "castRange": { "type": "distance", "min": 1, "max": 3 },
-    "patternId": "single",
+    "patternId": "cross_1",
     "targetType": "cell",
     "targetFilter": "enemy",
     "cooldown": 0,
     "powerPerLevel": 0.08,
     "aiHint": "attack",
     "cellEffects": {
-      "center": [{ "type": "damage", "element": "physical", "multiplier": 1.0 }]
+      "center": [{ "type": "damage", "element": "physical", "multiplier": 1.0 }],
+      "arm": [{ "type": "damage", "element": "physical", "multiplier": 0.5 }]
     }
   },
   {
     "id": "wind_blade",
     "name": "风刃",
-    "description": "凝聚锋利风刃射向 1-4 格内一个敌人，造成风属性伤害。",
-    "shortDescription": "1-4 格单体风伤",
-    "castRange": { "type": "distance", "min": 1, "max": 4 },
-    "patternId": "single",
-    "targetType": "cell",
+    "description": "向指定方向掷出锋利风刃，贯穿前方直线 2 格的敌人，造成风属性伤害。",
+    "shortDescription": "前方直线 2 格 100% 风伤",
+    "castRange": { "type": "direction" },
+    "patternId": "line_2",
+    "targetType": "direction",
     "targetFilter": "enemy",
     "cooldown": 0,
     "powerPerLevel": 0.1,
     "aiHint": "attack",
     "cellEffects": {
-      "center": [{ "type": "damage", "element": "wind", "multiplier": 1.2 }]
+      "path": [{ "type": "damage", "element": "wind", "multiplier": 1.0 }]
     }
   },
   {
@@ -167,18 +152,19 @@
   },
   {
     "id": "fire_bolt",
-    "name": "火弹",
-    "description": "投掷一颗火弹，对 1-5 格内一个敌人造成火焰伤害。",
-    "shortDescription": "1-5 格单体火伤",
+    "name": "爆裂火弹",
+    "description": "向 1-5 格内目标点投掷火弹，落点爆裂，波及上下左右的敌人。",
+    "shortDescription": "1-5 格小十字 100% 火伤",
     "castRange": { "type": "distance", "min": 1, "max": 5 },
-    "patternId": "single",
+    "patternId": "cross_1",
     "targetType": "cell",
     "targetFilter": "enemy",
     "cooldown": 0,
     "powerPerLevel": 0.1,
     "aiHint": "attack",
     "cellEffects": {
-      "center": [{ "type": "damage", "element": "fire", "multiplier": 1.3 }]
+      "center": [{ "type": "damage", "element": "fire", "multiplier": 1.0 }],
+      "arm": [{ "type": "damage", "element": "fire", "multiplier": 0.5 }]
     }
   },
   {
@@ -222,34 +208,34 @@
   {
     "id": "sweep",
     "name": "横扫",
-    "description": "横扫前方 3 格，对命中的敌人造成物理伤害。",
-    "shortDescription": "前方横排物伤",
+    "description": "挥枪横扫前方 3 格，对命中的敌人造成物理伤害。",
+    "shortDescription": "前方横排 90% 物伤",
     "castRange": { "type": "direction" },
     "patternId": "front_row_3",
     "targetType": "direction",
     "targetFilter": "enemy",
-    "cooldown": 1,
+    "cooldown": 0,
     "powerPerLevel": 0.1,
     "aiHint": "attack",
     "cellEffects": {
-      "all": [{ "type": "damage", "element": "physical", "multiplier": 1.0 }]
+      "all": [{ "type": "damage", "element": "physical", "multiplier": 0.9 }]
     }
   },
   {
     "id": "guard_break",
     "name": "破甲刺",
-    "description": "对相邻的一个敌人造成物理伤害并施加易伤（受到伤害提高）。",
-    "shortDescription": "相邻单体+易伤",
-    "castRange": { "type": "melee" },
-    "patternId": "single",
-    "targetType": "cell",
+    "description": "向指定方向突刺，贯穿前方直线 2 格的敌人，造成物理伤害并施加易伤（受到伤害提高）。",
+    "shortDescription": "直线 2 格物伤+易伤",
+    "castRange": { "type": "direction" },
+    "patternId": "line_2",
+    "targetType": "direction",
     "targetFilter": "enemy",
     "cooldown": 2,
     "powerPerLevel": 0.1,
     "aiHint": "control",
     "cellEffects": {
-      "center": [
-        { "type": "damage", "element": "physical", "multiplier": 1.1 },
+      "path": [
+        { "type": "damage", "element": "physical", "multiplier": 0.9 },
         { "type": "apply_status", "status": "vulnerable", "duration": 2 }
       ]
     }
@@ -274,16 +260,16 @@
     "id": "crescent_slash",
     "name": "新月斩",
     "description": "挥出一道弧形剑光，横扫前方 3 格的敌人，造成物理伤害。围住敌人时收益最大。",
-    "shortDescription": "前方横排物伤",
+    "shortDescription": "前方横排 100% 物伤",
     "castRange": { "type": "direction" },
     "patternId": "front_row_3",
     "targetType": "direction",
     "targetFilter": "enemy",
-    "cooldown": 1,
+    "cooldown": 0,
     "powerPerLevel": 0.1,
     "aiHint": "attack",
     "cellEffects": {
-      "all": [{ "type": "damage", "element": "physical", "multiplier": 1.1 }]
+      "all": [{ "type": "damage", "element": "physical", "multiplier": 1.0 }]
     }
   },
   {
@@ -305,33 +291,35 @@
   {
     "id": "mortal_strike",
     "name": "致命斩",
-    "description": "对相邻的一个敌人蓄力猛砍，造成高额物理伤害。适合收割残血或斩杀单个强敌。",
-    "shortDescription": "相邻单体高物伤",
-    "castRange": { "type": "melee" },
-    "patternId": "single",
-    "targetType": "cell",
+    "description": "向指定方向挥出巨大剑气：紧邻一格受重创，其后横排 3 格被剑风扫及。收割残血与破阵两相宜。",
+    "shortDescription": "T 字剑气：近格 160%/远排 100%",
+    "castRange": { "type": "direction" },
+    "patternId": "t_shape",
+    "targetType": "direction",
     "targetFilter": "enemy",
     "cooldown": 3,
     "powerPerLevel": 0.12,
     "aiHint": "attack",
     "cellEffects": {
-      "center": [{ "type": "damage", "element": "physical", "multiplier": 1.8 }]
+      "stem": [{ "type": "damage", "element": "physical", "multiplier": 1.6 }],
+      "head": [{ "type": "damage", "element": "physical", "multiplier": 1.0 }]
     }
   },
   {
     "id": "frost_bolt",
-    "name": "寒冰弹",
-    "description": "凝射一枚寒冰弹，对 1-5 格内一个敌人造成冰属性伤害。",
-    "shortDescription": "1-5 格单体冰伤",
+    "name": "冰锥溅射",
+    "description": "向 1-5 格内目标点凝射冰锥，落点碎裂成冰片，波及上下左右的敌人。",
+    "shortDescription": "1-5 格小十字 100% 冰伤",
     "castRange": { "type": "distance", "min": 1, "max": 5 },
-    "patternId": "single",
+    "patternId": "cross_1",
     "targetType": "cell",
     "targetFilter": "enemy",
     "cooldown": 0,
     "powerPerLevel": 0.1,
     "aiHint": "attack",
     "cellEffects": {
-      "center": [{ "type": "damage", "element": "ice", "multiplier": 1.3 }]
+      "center": [{ "type": "damage", "element": "ice", "multiplier": 1.0 }],
+      "arm": [{ "type": "damage", "element": "ice", "multiplier": 0.5 }]
     }
   },
   {
@@ -386,6 +374,38 @@
     "aiHint": "aoe",
     "cellEffects": {
       "all": [{ "type": "damage", "element": "ice", "multiplier": 1.0 }]
+    }
+  },
+  {
+    "id": "cleave",
+    "name": "劈砍",
+    "description": "抡起武器横劈前方 3 格，对命中的敌人造成物理伤害。",
+    "shortDescription": "前方横排 90% 物伤",
+    "castRange": { "type": "direction" },
+    "patternId": "front_row_3",
+    "targetType": "direction",
+    "targetFilter": "enemy",
+    "cooldown": 0,
+    "powerPerLevel": 0.08,
+    "aiHint": "attack",
+    "cellEffects": {
+      "all": [{ "type": "damage", "element": "physical", "multiplier": 0.9 }]
+    }
+  },
+  {
+    "id": "heavy_smash",
+    "name": "震地重击",
+    "description": "重锤砸地，以自身为中心震荡紧邻九宫格，对范围内敌人造成高额物理伤害。",
+    "shortDescription": "自身九宫格 110% 物伤",
+    "castRange": { "type": "self" },
+    "patternId": "area_3x3",
+    "targetType": "cell",
+    "targetFilter": "enemy",
+    "cooldown": 2,
+    "powerPerLevel": 0.08,
+    "aiHint": "aoe",
+    "cellEffects": {
+      "all": [{ "type": "damage", "element": "physical", "multiplier": 1.1 }]
     }
   }
 ]

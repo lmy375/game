@@ -21,7 +21,8 @@ export const unitPortraitUrls = {
 } as const;
 
 export const skillIconUrls = {
-  normal_attack: new URL("./assets/skills/normal_attack.png", import.meta.url).href,
+  // 通用回退图标：尚无专属图标的技能共用（原普攻图标复用为斩击底图）。
+  fallback: new URL("./assets/skills/normal_attack.png", import.meta.url).href,
   cross_fire: new URL("./assets/skills/cross_fire.png", import.meta.url).href,
   pierce_shot: new URL("./assets/skills/pierce_shot.png", import.meta.url).href,
   gale_gather: new URL("./assets/skills/gale_gather.png", import.meta.url).href,

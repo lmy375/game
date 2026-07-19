@@ -1,6 +1,7 @@
 import {
   GridBoard,
   BattleState,
+  BattleAction,
   Unit,
   UnitStats,
   Faction,
@@ -12,6 +13,7 @@ import {
   unitById,
   livingUnits,
   computeMoveRange,
+  directionTo,
 } from "@core/index";
 
 const DEFAULT_STATS: UnitStats = { hp: 100, attack: 20, magic: 30, defense: 0, moveRange: 4, speed: 50 };
@@ -63,7 +65,30 @@ export function makeState(
 }
 
 /**
- * 把一局战斗驱动到分出胜负，返回最终状态。敌方走 AI；玩家用简单策略（靠近最近敌人→相邻普攻→结束）。
+ * 朴素玩家策略的施法环节：按技能表顺序，对每个敌人枚举「目标格 / 释放方向 / 目标单位 / 自身格」，
+ * 释放第一个能真正造成伤害的技能（simulate 校验合法性与效果）。返回施放后的状态；无可放技能则原样返回。
+ */
+export function castFirstDamagingSkill(state: BattleState, sim: BattleSimulator, actorId: string): BattleState {
+  const me = unitById(state, actorId);
+  if (!me) return state;
+  const enemies = livingUnits(state, "enemy");
+  for (const skillId of me.skills) {
+    const candidates: BattleAction[] = enemies.flatMap((e) => [
+      { type: "skill" as const, actorId, skillId, targetCell: { ...e.pos } },
+      { type: "skill" as const, actorId, skillId, direction: directionTo(me.pos, e.pos) },
+      { type: "skill" as const, actorId, skillId, targetUnitId: e.instanceId, targetCell: { ...e.pos } },
+    ]);
+    candidates.push({ type: "skill", actorId, skillId, targetCell: { ...me.pos } }); // self 范围技
+    for (const act of candidates) {
+      const r = sim.simulate(state, act);
+      if (r.ok && r.events.some((ev) => ev.type === "unit_damaged")) return r.nextState;
+    }
+  }
+  return state;
+}
+
+/**
+ * 把一局战斗驱动到分出胜负，返回最终状态。敌方走 AI；玩家用简单策略（靠近最近敌人→放第一个能伤敌的技能→结束）。
  * 抽自 battle.test.ts 的完整对局循环，供战斗/养成测试复用。
  */
 export function runToOutcome(initial: BattleState, registry: ContentRegistry): BattleState {
@@ -96,14 +121,7 @@ export function runToOutcome(initial: BattleState, registry: ContentRegistry): B
         if (r.ok) state = r.nextState;
       }
     }
-    const me = unitById(state, actor.instanceId)!;
-    const adj = livingUnits(state, "enemy").find(
-      (e) => Math.abs(e.pos.x - me.pos.x) + Math.abs(e.pos.y - me.pos.y) === 1
-    );
-    if (adj) {
-      const r = sim.simulate(state, { type: "skill", actorId: actor.instanceId, skillId: "normal_attack", targetCell: adj.pos });
-      if (r.ok) state = r.nextState;
-    }
+    state = castFirstDamagingSkill(state, sim, actor.instanceId);
     state = sim.simulate(state, { type: "end_turn" }).nextState;
   }
   return state;

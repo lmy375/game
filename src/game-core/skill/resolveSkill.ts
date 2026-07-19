@@ -59,12 +59,6 @@ export function getCastableCells(state: BattleState, caster: Unit, skill: SkillD
     case "self":
       cells.push(clone(caster.pos));
       break;
-    case "melee":
-      for (const dir of ALL_DIRECTIONS) {
-        const p = add(caster.pos, DIRECTION_VECTOR[dir]);
-        if (state.board.inBounds(p)) cells.push(p);
-      }
-      break;
     case "distance":
       within(range.min, range.max);
       break;

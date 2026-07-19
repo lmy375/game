@@ -15,7 +15,7 @@ export function serialize(data: SaveData): string {
 
 export function deserialize(json: string): SaveData {
   const parsed = JSON.parse(json) as Partial<SaveData>;
-  if (!parsed || parsed.version !== 2 || !parsed.profile) {
+  if (!parsed || parsed.version !== 3 || !parsed.profile) {
     throw new Error("存档版本不兼容或已损坏");
   }
   // 深拷贝，避免外部持有内部引用。

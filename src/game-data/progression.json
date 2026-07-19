@@ -20,24 +20,19 @@
   "unlocks": {
     "wind_mage": [
       { "level": 2, "skill": "push_wave" },
-      { "level": 4, "skill": "wind_blade" },
       { "level": 8, "skill": "cyclone" },
       { "level": 12, "skill": "tempest" }
     ],
     "fire_mage": [
-      { "level": 3, "skill": "fire_bolt" },
       { "level": 6, "skill": "flame_wall" },
       { "level": 10, "skill": "inferno" }
     ],
     "lancer": [
-      { "level": 2, "skill": "pierce_shot" },
       { "level": 3, "skill": "swap_skill" },
-      { "level": 5, "skill": "sweep" },
       { "level": 7, "skill": "guard_break" },
       { "level": 9, "skill": "charge_thrust" }
     ],
     "swordsman": [
-      { "level": 2, "skill": "crescent_slash" },
       { "level": 5, "skill": "whirlwind_slash" },
       { "level": 8, "skill": "mortal_strike" }
     ],

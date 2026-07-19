@@ -32,9 +32,9 @@ export interface PlayerProfile {
   storyNodeId: string;
 }
 
-/** 带版本号的存档根，便于将来迁移。version 2 起装备为三槽。 */
+/** 带版本号的存档根，便于将来迁移。version 2 起装备为三槽；version 3 起移除普攻、技能全面 AOE 化。 */
 export interface SaveData {
-  version: 2;
+  version: 3;
   profile: PlayerProfile;
 }
 

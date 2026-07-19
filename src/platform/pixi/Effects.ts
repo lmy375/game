@@ -10,6 +10,8 @@ type GeneratedEffectSheetKey = keyof typeof generatedEffectSheetUrls;
 /** 程序化 2D 特效 + 生图逐帧技能特效。 */
 export class Effects {
   private sheetCache = new Map<GeneratedEffectSheetKey, Texture[]>();
+  private shakeBase: Point | null = null;
+  private shakeToken = 0;
 
   constructor(
     private fx: Container,
@@ -258,10 +260,19 @@ export class Effects {
   }
 
   shake(intensity = 8, dur = 0.25): void {
-    void this.anim.animate(dur, (t) => {
-      const k = (1 - t) * intensity;
-      this.world.position.set((Math.random() - 0.5) * k, (Math.random() - 0.5) * k);
-    });
+    if (!this.shakeBase) this.shakeBase = { x: this.world.position.x, y: this.world.position.y };
+    const base = this.shakeBase;
+    const token = ++this.shakeToken;
+    void this.anim
+      .animate(dur, (t) => {
+        const k = (1 - t) * intensity;
+        this.world.position.set(base.x + (Math.random() - 0.5) * k, base.y + (Math.random() - 0.5) * k);
+      })
+      .then(() => {
+        if (token !== this.shakeToken) return;
+        this.world.position.set(base.x, base.y);
+        this.shakeBase = null;
+      });
   }
 
   cast(skillId: string, fromCell: Point, toCell: Point | null): number {
@@ -271,12 +282,10 @@ export class Effects {
     const aim = this.angle(from, to);
 
     switch (skillId) {
-      case "normal_attack":
-        this.slashAt(to, aim, 116);
-        return 0.28;
       case "ranged_shot":
         this.sheetProjectile("projectile_bolt", from, to, 86);
-        return 0.36;
+        this.after(0.2, () => this.burst(to.x, to.y, 0xffd27a, 10, 40));
+        return 0.42;
       case "pierce_shot":
         this.sheetProjectile("projectile_bolt", from, lineTo, 104);
         return 0.4;
@@ -292,10 +301,12 @@ export class Effects {
         this.sheetEffect("swap_portal", from, 118, 0.42);
         this.sheetEffect("swap_portal", to, 138, 0.5);
         return 0.42;
-      case "wind_blade":
-        this.sheetProjectile("projectile_bolt", from, to, 84, 0x9fffd6);
-        this.after(0.16, () => this.windImpact(to, false));
+      case "wind_blade": {
+        const end = this.lineEnd(fromCell, toCell ?? fromCell, 2);
+        this.sheetProjectile("projectile_bolt", from, end, 84, 0x9fffd6);
+        this.after(0.16, () => this.windImpact(end, false));
         return 0.42;
+      }
       case "cyclone":
         this.windImpact(to, true);
         return 0.46;
@@ -308,8 +319,8 @@ export class Effects {
         return 0.5;
       case "fire_bolt":
         this.sheetProjectile("projectile_bolt", from, to, 86, 0xff8a2a);
-        this.after(0.16, () => this.fireImpact(to, false));
-        return 0.42;
+        this.after(0.16, () => this.crossBurst(to, "fire_burst", 108));
+        return 0.5;
       case "flame_wall":
         this.frontRowPoints(from, to).forEach((p, i) => this.after(i * 0.04, () => this.fireImpact(p, false)));
         return 0.44;
@@ -318,12 +329,21 @@ export class Effects {
         this.after(0.14, () => this.fireImpact(to, false));
         return 0.54;
       case "sweep":
+      case "cleave":
         this.frontSweep(from, to, undefined, 120);
         return 0.34;
-      case "guard_break":
-        this.slashAt(to, aim, 128, 0xd96ad9);
-        this.after(0.08, () => this.sheetEffect("swap_portal", to, 92, 0.28));
-        return 0.34;
+      case "guard_break": {
+        const end = this.lineEnd(fromCell, toCell ?? fromCell, 2);
+        this.sheetProjectile("projectile_bolt", from, end, 96, 0xd96ad9);
+        this.after(0.14, () => this.slashAt(end, aim, 128, 0xd96ad9));
+        this.after(0.22, () => this.sheetEffect("swap_portal", end, 92, 0.28));
+        return 0.44;
+      }
+      case "heavy_smash":
+        [0, Math.PI / 2, Math.PI, (Math.PI * 3) / 2].forEach((rot, i) => this.after(i * 0.04, () => this.slashAt(from, rot, 150, 0xd8c8a0)));
+        this.after(0.06, () => this.ring(from.x, from.y, 0xd8c8a0, 96, 0.5));
+        this.shake(9, 0.28);
+        return 0.46;
       case "charge_thrust":
         this.sheetProjectile("projectile_bolt", from, lineTo, 118);
         this.after(0.16, () => this.slashAt(lineTo, aim, 132));
@@ -334,14 +354,17 @@ export class Effects {
       case "whirlwind_slash":
         [0, Math.PI / 2, Math.PI, (Math.PI * 3) / 2].forEach((rot, i) => this.after(i * 0.045, () => this.slashAt(from, rot, 146)));
         return 0.44;
-      case "mortal_strike":
+      case "mortal_strike": {
+        // T 字剑气：紧邻一格重斩，其后横排剑风扫过。
+        const head = this.lineEnd(fromCell, toCell ?? fromCell, 2);
         this.sheetEffect("slash_arc", to, 162, 0.42, aim, 0xff5a45);
-        this.after(0.1, () => this.sheetEffect("fire_burst", to, 92, 0.28, 0, 0xfff2b0));
-        return 0.42;
+        this.after(0.12, () => this.frontSweep(from, head, 0xff5a45, 132));
+        return 0.5;
+      }
       case "frost_bolt":
         this.sheetProjectile("projectile_bolt", from, to, 84, 0x8fdcff);
-        this.after(0.16, () => this.iceImpact(to, false));
-        return 0.42;
+        this.after(0.16, () => this.crossBurst(to, "ice_burst", 108));
+        return 0.5;
       case "freeze":
         this.sheetProjectile("projectile_bolt", from, to, 82, 0xbfefff);
         this.after(0.16, () => this.iceImpact(to, false));
