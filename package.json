@@ -14,7 +14,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "levels:print": "node node_modules/.pnpm/vite-node@*/node_modules/vite-node/vite-node.mjs scripts/print-levels.ts"
   },
   "devDependencies": {
     "@types/node": "^26.0.1",

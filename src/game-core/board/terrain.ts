@@ -2,7 +2,7 @@
  * 地形定义。MVP 实现：普通地面、墙体、障碍物、火焰地形、陷阱格。
  */
 
-export type TerrainType = "ground" | "wall" | "obstacle" | "fire" | "trap";
+export type TerrainType = "ground" | "wall" | "obstacle" | "fire" | "trap" | "void";
 
 export interface TerrainProfile {
   type: TerrainType;
@@ -57,6 +57,16 @@ export const TERRAIN: Record<TerrainType, TerrainProfile> = {
     walkable: true,
     blocksDisplacement: false,
     triggersOnEnter: true,
+    destructible: false,
+  },
+  // 棋盘外的"空气":不属于战场的格子,不可通行、阻挡位移、不参与渲染。
+  // 用于把满矩形棋盘裁剪成不规则大陆轮廓。
+  void: {
+    type: "void",
+    blocksMove: true,
+    walkable: false,
+    blocksDisplacement: true,
+    triggersOnEnter: false,
     destructible: false,
   },
 };

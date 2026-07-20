@@ -1,7 +1,8 @@
 /**
  * 关卡定义与加载。loadLevel 是纯函数：LevelDef + Registry -> 初始 BattleState。
  */
-import { GridBoard } from "../board/GridBoard";
+import { BoardData, GridBoard } from "../board/GridBoard";
+import { parseLayout } from "../board/layout";
 import { TerrainType } from "../board/terrain";
 import { BattleState } from "../state/BattleState";
 import { Unit, UnitStats } from "../unit/Unit";
@@ -22,11 +23,8 @@ export interface LevelDef {
   teach?: string;
   /** 教学关卡可指定玩家先手；后续行动仍由 CT 速度系统接管。 */
   playerFirst?: boolean;
-  board: {
-    width: number;
-    height: number;
-    tiles?: { x: number; y: number; terrain: TerrainType }[];
-  };
+  /** ASCII layout(推荐,见 board/layout.ts)或显式尺寸 + tiles 列表。 */
+  board: LevelBoardDef;
   playerUnits: LevelUnitPlacement[];
   enemyUnits: LevelUnitPlacement[];
   /** 本关敌方属性覆盖（按 defId 覆盖部分字段，烘焙固定难度曲线）。缺省=units.json 基础值。 */
@@ -34,8 +32,21 @@ export interface LevelDef {
   winCondition: { type: "defeat_all_enemies" };
 }
 
+export type LevelBoardDef =
+  | { layout: string[] }
+  | {
+      width: number;
+      height: number;
+      tiles?: { x: number; y: number; terrain: TerrainType }[];
+    };
+
+/** 解析关卡棋盘定义为统一的 BoardData。 */
+export function resolveBoardData(board: LevelBoardDef): BoardData {
+  return "layout" in board ? parseLayout(board.layout) : board;
+}
+
 export function loadLevel(level: LevelDef, registry: ContentRegistry): BattleState {
-  const board = GridBoard.from(level.board);
+  const board = GridBoard.from(resolveBoardData(level.board));
   const units: Unit[] = [];
 
   const place = (p: LevelUnitPlacement, idx: number) => {

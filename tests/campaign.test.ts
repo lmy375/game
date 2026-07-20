@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { createRegistry, getLevel } from "@data/index";
 import { loadMetaTables, initialSaveData } from "@data/metaIndex";
-import { SaveData, SaveStore } from "@meta/index";
+import { SaveData, SaveStore, mulberry32 } from "@meta/index";
 import { CampaignDirector, CampaignHost, CampaignBattleHooks, TitleVM, CutsceneVM, ResultVM, EndingVM, LoadoutVM } from "../src/campaign";
 import { UnitStatPatch } from "../src/interaction";
 import { livingUnits, BattleState, LevelDef } from "@core/index";
@@ -76,7 +76,7 @@ describe("CampaignDirector 流程编排", () => {
   beforeEach(() => {
     host = new FakeHost();
     store = new MemStore();
-    director = new CampaignDirector({ registry, tables, store, host, newSave: initialSaveData, levelOf: getLevel });
+    director = new CampaignDirector({ registry, tables, store, host, newSave: initialSaveData, levelOf: getLevel, dropRng: mulberry32(1) });
   });
 
   it("boot 显示标题；无存档时「继续」不可用", () => {
@@ -128,10 +128,14 @@ describe("CampaignDirector 流程编排", () => {
 
     expect(host.result).toBeTruthy();
     expect(host.result!.win).toBe(true);
-    expect(host.result!.itemsGained.some((it) => it.name.includes("疾风护符"))).toBe(true);
+    // 固定掉落的横向推击秘卷标注自动装备去向。
     const tome = host.result!.itemsGained.find((it) => it.name.includes("横向推击"))!;
     expect(tome).toBeTruthy();
     expect(tome.equippedTo).toBe("风术士");
+    expect(tome.rarity.tier).toBe("green");
+    // 随机掉落追加 2 件（level_001 rolls=2），且每件都带稀有度信息。
+    expect(host.result!.itemsGained.length).toBe(1 + 2);
+    for (const it of host.result!.itemsGained) expect(it.rarity.label).toBeTruthy();
 
     director.onResultPrimary();
     expect(host.cutscene!.nodeId).toBe("n_cut_2");
@@ -206,26 +210,27 @@ describe("CampaignDirector 流程编排", () => {
     director.boot();
     director.newGame();
     for (let i = 0; i < 6; i++) director.advanceCutscene();
-    winCurrentBattle(host); // 第一场胜 → 掉落疾风护符（速度+15）
+    winCurrentBattle(host);
     director.onResultPrimary();
     for (let i = 0; i < 6; i++) director.advanceCutscene(); // 进入第二场战斗
 
-    const speedInBattle = host.battle!.state.units.find((u) => u.defId === "fire_mage")!.stats.speed;
+    const hpInBattle = host.battle!.state.units.find((u) => u.defId === "fire_mage")!.stats.hp;
 
     // 玩家点「休整」→ 整备界面，返回按钮指向战斗。
     host.battle!.hooks.onOpenLoadout();
     expect(host.loadout).toBeTruthy();
     expect(host.loadout!.back.label).toBe("返回战斗");
 
-    // 装上疾风护符后关闭 → 屏幕隐藏，补丁把速度加成带回战斗。
-    const charm = host.loadout!.equipInventory.find((it) => it.itemId === "swift_charm");
-    expect(charm).toBeTruthy();
-    director.doEquip("fire_mage", charm!.itemId);
+    // 装上起始背包里的皮甲（生命+15）后关闭 → 屏幕隐藏，补丁把加成带回战斗。
+    const armor = host.loadout!.equipInventory.find((it) => it.itemId === "leather_armor");
+    expect(armor).toBeTruthy();
+    expect(armor!.rarity.tier).toBe("gray");
+    director.doEquip("fire_mage", armor!.itemId);
     const hiddenBefore = host.hidden;
     director.closeLoadout();
     expect(host.hidden).toBeGreaterThan(hiddenBefore);
     const patch = host.statPatches!.find((p) => p.defId === "fire_mage")!;
-    expect(patch.stats.speed).toBe(speedInBattle + 15);
+    expect(patch.stats.hp).toBe(hpInBattle + 15);
     expect(patch.maxHp).toBe(patch.stats.hp);
   });
 

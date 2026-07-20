@@ -16,8 +16,11 @@ import {
   skillIdsOf,
   SKILL_SLOT_COUNT,
   SAVE_VERSION,
+  mulberry32,
+  isEquip,
+  isConsumable,
 } from "@meta/index";
-import { loadLevel, UnitStats } from "@core/index";
+import { loadLevel, resolveBoardData, UnitStats } from "@core/index";
 import { runToOutcome } from "./helpers";
 
 const registry = createRegistry();
@@ -71,7 +74,7 @@ describe("loadout：buildBattleState 复用 loadLevel + 按档案打补丁", () 
     const enemyBase = baseline.units.filter((u) => u.faction === "enemy").map((u) => ({ defId: u.defId, stats: u.stats, skills: u.skills }));
     expect(enemyBuilt).toEqual(enemyBase);
 
-    expect(built.board.width).toBe(getLevel("level_001").board.width);
+    expect(built.board.width).toBe(resolveBoardData(getLevel("level_001").board).width);
   });
 
   it("装备加成生效：疾风护符 +速度；活力宝石 +生命上限", () => {
@@ -148,30 +151,61 @@ describe("loadout 可实战", () => {
 });
 
 describe("奖励结算（确定性胜利态）", () => {
-  it("computeRewards：胜利掉落本关全部物品；失败无掉落", () => {
+  it("computeRewards：固定掉落必得 + 随机掉落按 rolls 数量；失败无掉落", () => {
     const save = initialSaveData();
     const final = wonState(save.profile, "level_001");
-    const rewards = computeRewards(getLevel("level_001"), final, tables.levelRewards);
+    const spec = tables.levelRewards["level_001"];
+    const rewards = computeRewards(getLevel("level_001"), final, tables.levelRewards, tables.items, mulberry32(1));
     expect(rewards.win).toBe(true);
-    expect(rewards.itemDrops).toEqual(["swift_charm", "minor_potion", "tome_push_wave"]);
+    // 固定掉落（秘卷）在最前，且必然包含。
+    expect(rewards.itemDrops.slice(0, spec.guaranteedDrops.length)).toEqual(spec.guaranteedDrops);
+    // 随机掉落追加 rolls 件，全部是有效物品 id。
+    expect(rewards.itemDrops.length).toBe(spec.guaranteedDrops.length + spec.randomDrops!.rolls);
+    for (const id of rewards.itemDrops) expect(tables.items[id]).toBeTruthy();
 
     const lost = wonState(save.profile, "level_001");
     lost.outcome = "enemy_win";
-    const noRewards = computeRewards(getLevel("level_001"), lost, tables.levelRewards);
+    const noRewards = computeRewards(getLevel("level_001"), lost, tables.levelRewards, tables.items, mulberry32(1));
     expect(noRewards.win).toBe(false);
     expect(noRewards.itemDrops).toEqual([]);
+  });
+
+  it("computeRewards：同种子结果完全一致，异种子结果分化（可复现的随机）", () => {
+    const save = initialSaveData();
+    const final = wonState(save.profile, "level_008");
+    const a = computeRewards(getLevel("level_008"), final, tables.levelRewards, tables.items, mulberry32(42));
+    const b = computeRewards(getLevel("level_008"), final, tables.levelRewards, tables.items, mulberry32(42));
+    const c = computeRewards(getLevel("level_008"), final, tables.levelRewards, tables.items, mulberry32(43));
+    expect(a.itemDrops).toEqual(b.itemDrops);
+    // 高稀有度关卡多次抽取，几乎不可能与另一种子完全相同。
+    expect(a.itemDrops).not.toEqual(c.itemDrops);
+  });
+
+  it("随机掉落只产出装备/消耗品，从不产出秘卷（秘卷全走固定掉落）", () => {
+    const save = initialSaveData();
+    const final = wonState(save.profile, "level_009");
+    const spec = tables.levelRewards["level_009"];
+    for (let seed = 0; seed < 40; seed++) {
+      const rewards = computeRewards(getLevel("level_009"), final, tables.levelRewards, tables.items, mulberry32(seed));
+      const randomPart = rewards.itemDrops.slice(spec.guaranteedDrops.length);
+      for (const id of randomPart) {
+        const def = tables.items[id];
+        expect(isEquip(def) || isConsumable(def), `${id} 不应出现在随机掉落`).toBe(true);
+        expect(isSkillItem(def)).toBe(false);
+      }
+    }
   });
 
   it("applyRewards：掉落入背包；技能秘卷自动装备到风术士空格并记录", () => {
     const save = initialSaveData();
     const final = wonState(save.profile, "level_001");
-    const rewards = computeRewards(getLevel("level_001"), final, tables.levelRewards);
+    const rewards = computeRewards(getLevel("level_001"), final, tables.levelRewards, tables.items, mulberry32(1));
     const { profile, autoEquipped } = applyRewards(save.profile, rewards, tables.items);
 
-    // 普通掉落留在背包；秘卷装走后不在背包。
-    expect(profile.inventory).toContain("swift_charm");
-    expect(profile.inventory).toContain("minor_potion");
+    // 秘卷（固定掉落）装走后不在背包；随机掉落的装备/消耗品留在背包。
     expect(profile.inventory).not.toContain("tome_push_wave");
+    const randomPart = rewards.itemDrops.slice(rewards.itemDrops.indexOf("tome_push_wave") + 1);
+    for (const id of randomPart) expect(profile.inventory).toContain(id);
 
     const wind = unitProgress(profile, "wind_mage")!;
     expect(wind.skillSlots).toContain("tome_push_wave");
@@ -180,7 +214,7 @@ describe("奖励结算（确定性胜利态）", () => {
 
     // 不改入参。
     expect(unitProgress(save.profile, "wind_mage")!.skillSlots).not.toContain("tome_push_wave");
-    expect(save.profile.inventory).not.toContain("swift_charm");
+    expect(save.profile.inventory).not.toContain("tome_push_wave");
   });
 });
 
@@ -188,9 +222,9 @@ describe("两场可观测：新技能 + 装备在下一场生效", () => {
   it("打完第一关，第二关 wind_mage 拥有横向推击且装备生效", () => {
     const save = initialSaveData();
     const final = wonState(save.profile, "level_001");
-    const rewards = computeRewards(getLevel("level_001"), final, tables.levelRewards);
+    const rewards = computeRewards(getLevel("level_001"), final, tables.levelRewards, tables.items, mulberry32(1));
     const { profile: profile2 } = applyRewards(save.profile, rewards, tables.items);
-    unitProgress(profile2, "wind_mage")!.equipped.accessory = "swift_charm"; // 装备掉落的疾风护符
+    unitProgress(profile2, "wind_mage")!.equipped.accessory = "swift_charm"; // 手动装上疾风护符验证加成
 
     const built2 = buildBattleState(profile2, getLevel("level_002"), registry, tables);
     const windBuilt = built2.units.find((u) => u.defId === "wind_mage")!;
@@ -229,7 +263,7 @@ describe("数据一致性：技能秘卷 / 掉落表 / 敌人覆盖表", () => {
       for (const s of skillIdsOf(up.skillSlots, tables.items)) obtainable.add(s);
     }
     for (const reward of Object.values(tables.levelRewards)) {
-      for (const id of reward.itemDrops) {
+      for (const id of reward.guaranteedDrops) {
         const def = tables.items[id];
         expect(def, `掉落 ${id} 不存在于物品表`).toBeTruthy();
         if (isSkillItem(def)) obtainable.add(def.skillId!);
@@ -243,7 +277,7 @@ describe("数据一致性：技能秘卷 / 掉落表 / 敌人覆盖表", () => {
     const save = initialSaveData();
     const startCount = save.profile.units.flatMap((u) => u.skillSlots).filter((id) => id === "tome_guard_break").length;
     const dropCount = Object.values(tables.levelRewards)
-      .flatMap((r) => r.itemDrops)
+      .flatMap((r) => r.guaranteedDrops)
       .filter((id) => id === "tome_guard_break").length;
     expect(startCount + dropCount).toBe(2);
   });

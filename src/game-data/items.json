@@ -3,6 +3,7 @@
     "id": "iron_sword",
     "name": "铁剑",
     "kind": "equip",
+    "rarity": "gray",
     "slot": "weapon",
     "description": "+4 攻击。",
     "bonus": [{ "stat": "attack", "amount": 4 }]
@@ -11,6 +12,7 @@
     "id": "oak_staff",
     "name": "橡木法杖",
     "kind": "equip",
+    "rarity": "gray",
     "slot": "weapon",
     "description": "+4 魔力。",
     "bonus": [{ "stat": "magic", "amount": 4 }]
@@ -19,6 +21,7 @@
     "id": "iron_band",
     "name": "铁腕环",
     "kind": "equip",
+    "rarity": "green",
     "slot": "weapon",
     "description": "+3 攻击，+2 防御。",
     "bonus": [
@@ -30,6 +33,7 @@
     "id": "leather_armor",
     "name": "皮甲",
     "kind": "equip",
+    "rarity": "gray",
     "slot": "armor",
     "description": "+15 生命，+2 防御。",
     "bonus": [
@@ -41,6 +45,7 @@
     "id": "vitality_gem",
     "name": "活力宝石",
     "kind": "equip",
+    "rarity": "green",
     "slot": "armor",
     "description": "+20 生命上限。",
     "bonus": [{ "stat": "hp", "amount": 20 }]
@@ -49,6 +54,7 @@
     "id": "swift_charm",
     "name": "疾风护符",
     "kind": "equip",
+    "rarity": "green",
     "slot": "accessory",
     "description": "+15 速度，行动更频繁。",
     "bonus": [{ "stat": "speed", "amount": 15 }]
@@ -57,14 +63,162 @@
     "id": "guard_amulet",
     "name": "守护护身符",
     "kind": "equip",
+    "rarity": "gray",
     "slot": "accessory",
     "description": "+3 防御。",
     "bonus": [{ "stat": "defense", "amount": 3 }]
   },
   {
+    "id": "steel_sword",
+    "name": "精钢战剑",
+    "kind": "equip",
+    "rarity": "blue",
+    "slot": "weapon",
+    "description": "+7 攻击，+5 速度。",
+    "bonus": [
+      { "stat": "attack", "amount": 7 },
+      { "stat": "speed", "amount": 5 }
+    ]
+  },
+  {
+    "id": "sage_staff",
+    "name": "贤者法杖",
+    "kind": "equip",
+    "rarity": "blue",
+    "slot": "weapon",
+    "description": "+7 魔力，+10 生命。",
+    "bonus": [
+      { "stat": "magic", "amount": 7 },
+      { "stat": "hp", "amount": 10 }
+    ]
+  },
+  {
+    "id": "plate_armor",
+    "name": "玄铁重甲",
+    "kind": "equip",
+    "rarity": "blue",
+    "slot": "armor",
+    "description": "+25 生命，+4 防御。",
+    "bonus": [
+      { "stat": "hp", "amount": 25 },
+      { "stat": "defense", "amount": 4 }
+    ]
+  },
+  {
+    "id": "onyx_pendant",
+    "name": "玛瑙坠饰",
+    "kind": "equip",
+    "rarity": "blue",
+    "slot": "accessory",
+    "description": "+3 防御，+8 速度。",
+    "bonus": [
+      { "stat": "defense", "amount": 3 },
+      { "stat": "speed", "amount": 8 }
+    ]
+  },
+  {
+    "id": "dragonfang_spear",
+    "name": "龙牙长枪",
+    "kind": "equip",
+    "rarity": "red",
+    "slot": "weapon",
+    "description": "+11 攻击，+5 速度。",
+    "bonus": [
+      { "stat": "attack", "amount": 11 },
+      { "stat": "speed", "amount": 5 }
+    ]
+  },
+  {
+    "id": "archmage_staff",
+    "name": "大魔导杖",
+    "kind": "equip",
+    "rarity": "red",
+    "slot": "weapon",
+    "description": "+11 魔力，+15 生命。",
+    "bonus": [
+      { "stat": "magic", "amount": 11 },
+      { "stat": "hp", "amount": 15 }
+    ]
+  },
+  {
+    "id": "guardian_plate",
+    "name": "守护者圣铠",
+    "kind": "equip",
+    "rarity": "red",
+    "slot": "armor",
+    "description": "+40 生命，+6 防御。",
+    "bonus": [
+      { "stat": "hp", "amount": 40 },
+      { "stat": "defense", "amount": 6 }
+    ]
+  },
+  {
+    "id": "shadow_boots",
+    "name": "迅影之靴",
+    "kind": "equip",
+    "rarity": "red",
+    "slot": "accessory",
+    "description": "+12 速度，+1 移动范围。",
+    "bonus": [
+      { "stat": "speed", "amount": 12 },
+      { "stat": "moveRange", "amount": 1 }
+    ]
+  },
+  {
+    "id": "kingslayer_blade",
+    "name": "弑君之刃",
+    "kind": "equip",
+    "rarity": "orange",
+    "slot": "weapon",
+    "description": "+16 攻击，+8 速度。",
+    "bonus": [
+      { "stat": "attack", "amount": 16 },
+      { "stat": "speed", "amount": 8 }
+    ]
+  },
+  {
+    "id": "staff_of_eternity",
+    "name": "永恒法杖",
+    "kind": "equip",
+    "rarity": "orange",
+    "slot": "weapon",
+    "description": "+16 魔力，+25 生命。",
+    "bonus": [
+      { "stat": "magic", "amount": 16 },
+      { "stat": "hp", "amount": 25 }
+    ]
+  },
+  {
+    "id": "aegis_armor",
+    "name": "神佑圣铠",
+    "kind": "equip",
+    "rarity": "orange",
+    "slot": "armor",
+    "description": "+55 生命，+8 防御，+5 速度。",
+    "bonus": [
+      { "stat": "hp", "amount": 55 },
+      { "stat": "defense", "amount": 8 },
+      { "stat": "speed", "amount": 5 }
+    ]
+  },
+  {
+    "id": "storm_crown",
+    "name": "风暴之冠",
+    "kind": "equip",
+    "rarity": "orange",
+    "slot": "accessory",
+    "description": "+15 速度，+4 防御，+1 移动范围。",
+    "bonus": [
+      { "stat": "speed", "amount": 15 },
+      { "stat": "defense", "amount": 4 },
+      { "stat": "moveRange", "amount": 1 }
+    ]
+  },
+  {
     "id": "minor_potion",
     "name": "初级药水",
     "kind": "consumable",
+    "rarity": "gray",
     "description": "恢复 30 生命（自身或射程 1 内友军）。",
     "effect": { "type": "heal", "amount": 30 },
     "range": 1
@@ -73,6 +227,7 @@
     "id": "greater_potion",
     "name": "高级药水",
     "kind": "consumable",
+    "rarity": "green",
     "description": "恢复 60 生命（自身或射程 1 内友军）。",
     "effect": { "type": "heal", "amount": 60 },
     "range": 1
@@ -81,14 +236,34 @@
     "id": "purify_herb",
     "name": "净化草",
     "kind": "consumable",
+    "rarity": "green",
     "description": "清除目标全部负面状态（自身或射程 1 内友军）。",
     "effect": { "type": "cleanse" },
     "range": 1
   },
   {
+    "id": "elixir",
+    "name": "秘制药剂",
+    "kind": "consumable",
+    "rarity": "blue",
+    "description": "恢复 100 生命（自身或射程 2 内友军）。",
+    "effect": { "type": "heal", "amount": 100 },
+    "range": 2
+  },
+  {
+    "id": "ambrosia",
+    "name": "仙灵甘露",
+    "kind": "consumable",
+    "rarity": "red",
+    "description": "恢复 200 生命（自身或射程 2 内友军）。",
+    "effect": { "type": "heal", "amount": 200 },
+    "range": 2
+  },
+  {
     "id": "tome_wind_blade",
     "name": "秘卷·风刃",
     "kind": "skill",
+    "rarity": "gray",
     "skillId": "wind_blade",
     "usableBy": ["wind_mage"],
     "description": "习得「风刃」：前方直线 2 格 100% 风伤。"
@@ -97,6 +272,7 @@
     "id": "tome_gale_gather",
     "name": "秘卷·狂风聚拢",
     "kind": "skill",
+    "rarity": "blue",
     "skillId": "gale_gather",
     "usableBy": ["wind_mage"],
     "description": "习得「狂风聚拢」：5×5 菱形聚拢+分档风伤。"
@@ -105,6 +281,7 @@
     "id": "tome_push_wave",
     "name": "秘卷·横向推击",
     "kind": "skill",
+    "rarity": "green",
     "skillId": "push_wave",
     "usableBy": ["wind_mage"],
     "description": "习得「横向推击」：前方横排击退 2 格，撞墙额外伤害。"
@@ -113,6 +290,7 @@
     "id": "tome_cyclone",
     "name": "秘卷·旋风",
     "kind": "skill",
+    "rarity": "blue",
     "skillId": "cyclone",
     "usableBy": ["wind_mage"],
     "description": "习得「旋风」：九宫格风属 AOE。"
@@ -121,6 +299,7 @@
     "id": "tome_tempest",
     "name": "秘卷·风暴",
     "kind": "skill",
+    "rarity": "orange",
     "skillId": "tempest",
     "usableBy": ["wind_mage"],
     "description": "习得「风暴」：十字范围风暴。"
@@ -129,6 +308,7 @@
     "id": "tome_fire_bolt",
     "name": "秘卷·爆裂火弹",
     "kind": "skill",
+    "rarity": "gray",
     "skillId": "fire_bolt",
     "usableBy": ["fire_mage"],
     "description": "习得「爆裂火弹」：1-5 格小十字 100% 火伤。"
@@ -137,6 +317,7 @@
     "id": "tome_cross_fire",
     "name": "秘卷·十字火焰",
     "kind": "skill",
+    "rarity": "blue",
     "skillId": "cross_fire",
     "usableBy": ["fire_mage"],
     "description": "习得「十字火焰」：十字范围火焰爆发。"
@@ -145,6 +326,7 @@
     "id": "tome_flame_wall",
     "name": "秘卷·火墙",
     "kind": "skill",
+    "rarity": "green",
     "skillId": "flame_wall",
     "usableBy": ["fire_mage"],
     "description": "习得「火墙」：前方横排火焰+燃烧。"
@@ -153,6 +335,7 @@
     "id": "tome_inferno",
     "name": "秘卷·炼狱",
     "kind": "skill",
+    "rarity": "red",
     "skillId": "inferno",
     "usableBy": ["fire_mage"],
     "description": "习得「炼狱」：九宫格火焰+燃烧。"
@@ -161,6 +344,7 @@
     "id": "tome_sweep",
     "name": "秘卷·横扫",
     "kind": "skill",
+    "rarity": "gray",
     "skillId": "sweep",
     "usableBy": ["lancer"],
     "description": "习得「横扫」：前方横排 90% 物伤。"
@@ -169,6 +353,7 @@
     "id": "tome_pierce_shot",
     "name": "秘卷·贯穿射击",
     "kind": "skill",
+    "rarity": "green",
     "skillId": "pierce_shot",
     "usableBy": ["lancer"],
     "description": "习得「贯穿射击」：直线贯穿多目标。"
@@ -177,6 +362,7 @@
     "id": "tome_swap_skill",
     "name": "秘卷·换位术",
     "kind": "skill",
+    "rarity": "green",
     "skillId": "swap_skill",
     "usableBy": ["lancer"],
     "description": "习得「换位术」：与 1-3 格单位换位。"
@@ -185,6 +371,7 @@
     "id": "tome_guard_break",
     "name": "秘卷·破甲刺",
     "kind": "skill",
+    "rarity": "green",
     "skillId": "guard_break",
     "usableBy": ["lancer", "swordsman"],
     "description": "习得「破甲刺」：直线 2 格物伤+易伤。"
@@ -193,6 +380,7 @@
     "id": "tome_charge_thrust",
     "name": "秘卷·冲锋突刺",
     "kind": "skill",
+    "rarity": "red",
     "skillId": "charge_thrust",
     "usableBy": ["lancer"],
     "description": "习得「冲锋突刺」：直线贯穿高物伤。"
@@ -201,6 +389,7 @@
     "id": "tome_crescent_slash",
     "name": "秘卷·新月斩",
     "kind": "skill",
+    "rarity": "gray",
     "skillId": "crescent_slash",
     "usableBy": ["swordsman"],
     "description": "习得「新月斩」：前方横排 100% 物伤。"
@@ -209,6 +398,7 @@
     "id": "tome_whirlwind_slash",
     "name": "秘卷·旋风斩",
     "kind": "skill",
+    "rarity": "blue",
     "skillId": "whirlwind_slash",
     "usableBy": ["swordsman"],
     "description": "习得「旋风斩」：自身九宫格物伤。"
@@ -217,6 +407,7 @@
     "id": "tome_mortal_strike",
     "name": "秘卷·致命斩",
     "kind": "skill",
+    "rarity": "red",
     "skillId": "mortal_strike",
     "usableBy": ["swordsman"],
     "description": "习得「致命斩」：T 字剑气，近格 160%/远排 100%。"
@@ -225,6 +416,7 @@
     "id": "tome_frost_bolt",
     "name": "秘卷·冰锥溅射",
     "kind": "skill",
+    "rarity": "gray",
     "skillId": "frost_bolt",
     "usableBy": ["ice_mage"],
     "description": "习得「冰锥溅射」：1-5 格小十字 100% 冰伤。"
@@ -233,6 +425,7 @@
     "id": "tome_freeze",
     "name": "秘卷·冰封",
     "kind": "skill",
+    "rarity": "blue",
     "skillId": "freeze",
     "usableBy": ["ice_mage"],
     "description": "习得「冰封」：1-4 格单体冰伤+冻结 2 回合。"
@@ -241,6 +434,7 @@
     "id": "tome_frost_nova",
     "name": "秘卷·冰霜新星",
     "kind": "skill",
+    "rarity": "red",
     "skillId": "frost_nova",
     "usableBy": ["ice_mage"],
     "description": "习得「冰霜新星」：自身九宫格冰伤+冻结 1 回合。"
@@ -249,6 +443,7 @@
     "id": "tome_blizzard",
     "name": "秘卷·暴风雪",
     "kind": "skill",
+    "rarity": "red",
     "skillId": "blizzard",
     "usableBy": ["ice_mage"],
     "description": "习得「暴风雪」：九宫格冰属 AOE。"

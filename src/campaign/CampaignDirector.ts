@@ -34,6 +34,9 @@ import {
   consumeItem,
   inventoryStacks,
   AutoEquipRecord,
+  ItemDef,
+  Rng,
+  RARITY_LABELS,
 } from "@meta/index";
 import { BattleItem, UnitStatPatch } from "../interaction";
 import {
@@ -51,6 +54,7 @@ import {
   SkillSlotVM,
   InventoryItemVM,
   StatBonusVM,
+  RarityVM,
 } from "./types";
 
 /** 整备界面属性预览展示的属性（不含 moveRange，与装备加成可影响的主属性一致）。 */
@@ -81,6 +85,11 @@ function bonusVMs(bonus?: StatBonus[]): StatBonusVM[] | undefined {
   return bonus.map((b) => ({ label: STAT_LABELS[b.stat] ?? b.stat, amount: b.amount }));
 }
 
+/** 物品稀有度 → 展示 VM。 */
+function rarityVM(def: ItemDef): RarityVM {
+  return { tier: def.rarity, label: RARITY_LABELS[def.rarity] };
+}
+
 export interface CampaignDeps {
   registry: ContentRegistry;
   tables: MetaTables;
@@ -90,6 +99,8 @@ export interface CampaignDeps {
   newSave: () => SaveData;
   /** levelId -> LevelDef（来自 @data 的 getLevel）。 */
   levelOf: (levelId: string) => LevelDef;
+  /** 随机掉落的随机源（缺省 Math.random；测试/数值验证注入种子 PRNG 以复现）。 */
+  dropRng?: Rng;
 }
 
 type PendingResult = { kind: "win"; battleNodeId: string } | { kind: "lose"; battleNodeId: string };
@@ -307,7 +318,8 @@ export class CampaignDirector {
     const level = this.deps.levelOf((nodeById(this.deps.tables.story, battleNodeId) as { levelId: string }).levelId);
 
     if (outcome === "player_win") {
-      const rewards = computeRewards(level, finalState, this.deps.tables.levelRewards);
+      const rng = this.deps.dropRng ?? Math.random;
+      const rewards = computeRewards(level, finalState, this.deps.tables.levelRewards, this.deps.tables.items, rng);
       const { profile, autoEquipped } = applyRewards(this.profile, rewards, this.deps.tables.items);
       this.profile = profile; // 掉落入背包；技能秘卷已自动装备，其余在整备界面手动处理
 
@@ -369,6 +381,7 @@ export class CampaignDirector {
       return {
         name: it?.name ?? id,
         description: it?.description ?? "",
+        rarity: it ? rarityVM(it) : { tier: "gray" as const, label: RARITY_LABELS.gray },
         equippedTo: equippedDefId ? this.unitName(equippedDefId) : undefined,
       };
     });
@@ -421,14 +434,16 @@ export class CampaignDirector {
         return {
           slot,
           label: SLOT_LABELS[slot],
-          item: it ? { itemId: it.id, name: it.name, description: it.description, bonuses: bonusVMs(it.bonus) } : undefined,
+          item: it
+            ? { itemId: it.id, name: it.name, description: it.description, rarity: rarityVM(it), bonuses: bonusVMs(it.bonus) }
+            : undefined,
         };
       });
       const skillSlots: SkillSlotVM[] = up.skillSlots.map((id, index) => {
         const it = id ? items[id] : undefined;
         return {
           index,
-          item: it ? { itemId: it.id, name: it.name, description: it.description } : undefined,
+          item: it ? { itemId: it.id, name: it.name, description: it.description, rarity: rarityVM(it) } : undefined,
         };
       });
       // 属性预览含装备加成。
@@ -446,6 +461,7 @@ export class CampaignDirector {
         itemId: def.id,
         name: def.name,
         description: def.description,
+        rarity: rarityVM(def),
         slot: def.slot,
         bonuses: bonusVMs(def.bonus),
         usableBy: def.usableBy,

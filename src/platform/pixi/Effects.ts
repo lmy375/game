@@ -247,7 +247,9 @@ export class Effects {
   }
 
   float(px: number, py: number, text: string, color: string): void {
-    const t = new Text({ text, style: { fontSize: 22, fill: color, fontWeight: "bold", stroke: { color: 0x000000, width: 4 } } });
+    // 世界坐标系文字按 world 缩放补偿字号,大棋盘缩小后仍可读。
+    const comp = Math.min(2.2, Math.max(1, 1 / this.world.scale.x));
+    const t = new Text({ text, style: { fontSize: Math.round(22 * comp), fill: color, fontWeight: "bold", stroke: { color: 0x000000, width: 4 } } });
     t.anchor.set(0.5);
     t.position.set(px, py);
     this.fx.addChild(t);

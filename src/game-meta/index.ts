@@ -10,4 +10,5 @@ export * from "./story/StoryGraph";
 export * from "./save/MetaTables";
 export * from "./save/SaveStore";
 export * from "./rewards/Rewards";
+export * from "./rewards/rng";
 export * from "./loadout/buildBattleState";

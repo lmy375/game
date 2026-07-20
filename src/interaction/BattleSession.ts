@@ -196,10 +196,17 @@ export class BattleSession {
     return events.some((e) => EFFECT_EVENTS.has(e.type));
   }
 
+  /** void(空气)格视为无效格:所有表现层的悬停/点击在此统一收口。 */
+  private validCell(cell: Position | null): Position | null {
+    if (!cell) return null;
+    return this.state.board.terrainAt(cell) === "void" ? null : cell;
+  }
+
   // ---------- 输入意图（表现层把引擎事件翻译成这些调用）----------
   /** 指针悬停到某格（瞄准未锁定时同步更新预览）。 */
   hoverCell(cell: Position | null): void {
     if (this.busy) return;
+    cell = this.validCell(cell);
     this.hover = cell;
     if (this.aiming() && !this.aimLocked && cell) this.updatePendingFromCell(cell);
     this.render();
@@ -209,6 +216,15 @@ export class BattleSession {
   tapCell(cell: Position): void {
     if (!this.isPlayerTurn()) return;
     const active = this.active()!;
+
+    // 点到 void(空气)格:瞄准中忽略,否则视为"点空处"收起菜单。
+    if (!this.validCell(cell)) {
+      if (!this.aiming()) {
+        this.menuOpen = false;
+        this.render();
+      }
+      return;
+    }
 
     // 技能/道具瞄准中：第一次点击锁定范围，第二次点击释放；取消由 cancel() 负责。
     if (this.aiming()) {

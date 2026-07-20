@@ -14,6 +14,7 @@ import {
   livingUnits,
   computeMoveRange,
   directionTo,
+  parseLayout,
 } from "@core/index";
 
 const DEFAULT_STATS: UnitStats = { hp: 100, attack: 20, magic: 30, defense: 0, moveRange: 4, speed: 50 };
@@ -54,6 +55,19 @@ export function makeState(
     board: new GridBoard(width, height, tiles),
     units,
     // 默认让第一个单位作为当前行动单位，便于直接对其施放技能/移动。
+    turn: units[0]?.faction ?? "player",
+    activeUnitId: units[0]?.instanceId ?? null,
+    turnCount: 0,
+    outcome: null,
+  };
+}
+
+/** 用 ASCII layout 建局(见 board/layout.ts 的字符映射与行序约定)。 */
+export function makeStateFromLayout(layout: string[], units: Unit[]): BattleState {
+  const data = parseLayout(layout);
+  return {
+    board: new GridBoard(data.width, data.height, data.tiles),
+    units,
     turn: units[0]?.faction ?? "player",
     activeUnitId: units[0]?.instanceId ?? null,
     turnCount: 0,

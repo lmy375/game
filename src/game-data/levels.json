@@ -6,29 +6,46 @@
     "teach": "你只有一个人。等敌人靠拢成团，一发「十字火焰」把他们一起点燃。",
     "playerFirst": true,
     "board": {
-      "width": 8,
-      "height": 8,
-      "tiles": [
-        { "x": 0, "y": 0, "terrain": "wall" },
-        { "x": 3, "y": 0, "terrain": "wall" },
-        { "x": 0, "y": 1, "terrain": "wall" },
-        { "x": 2, "y": 2, "terrain": "obstacle" },
-        { "x": 5, "y": 5, "terrain": "obstacle" },
-        { "x": 2, "y": 6, "terrain": "wall" },
-        { "x": 7, "y": 6, "terrain": "wall" },
-        { "x": 6, "y": 7, "terrain": "wall" },
-        { "x": 7, "y": 7, "terrain": "wall" }
+      "layout": [
+        "~~~~......~~~~",
+        "~~..........~~",
+        "~...o........~",
+        "..........f...",
+        ".......f......",
+        ".......f......",
+        "..............",
+        "~........o...~",
+        "~~..........~~",
+        "~~~~......~~~~"
       ]
     },
     "playerUnits": [
-      { "unitId": "fire_mage", "x": 1, "y": 4 }
+      {
+        "unitId": "fire_mage",
+        "x": 2,
+        "y": 4
+      }
     ],
     "enemyUnits": [
-      { "unitId": "enemy_soldier", "x": 5, "y": 3 },
-      { "unitId": "enemy_soldier", "x": 6, "y": 5 },
-      { "unitId": "enemy_soldier", "x": 4, "y": 6 }
+      {
+        "unitId": "enemy_soldier",
+        "x": 10,
+        "y": 4
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 11,
+        "y": 6
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 10,
+        "y": 2
+      }
     ],
-    "winCondition": { "type": "defeat_all_enemies" }
+    "winCondition": {
+      "type": "defeat_all_enemies"
+    }
   },
   {
     "id": "level_002",
@@ -37,31 +54,57 @@
     "teach": "风术士入队。先用「狂风聚拢」把敌人拢到一处，火法师一发十字火焰收割。",
     "playerFirst": true,
     "board": {
-      "width": 9,
-      "height": 8,
-      "tiles": [
-        { "x": 0, "y": 0, "terrain": "wall" },
-        { "x": 8, "y": 0, "terrain": "wall" },
-        { "x": 8, "y": 1, "terrain": "wall" },
-        { "x": 3, "y": 1, "terrain": "wall" },
-        { "x": 4, "y": 6, "terrain": "wall" },
-        { "x": 5, "y": 3, "terrain": "obstacle" },
-        { "x": 0, "y": 7, "terrain": "wall" },
-        { "x": 7, "y": 7, "terrain": "wall" },
-        { "x": 8, "y": 7, "terrain": "wall" }
+      "layout": [
+        "~~~~~.~~~~~~~~~",
+        "~~~...~~~~~~~~~",
+        "~..o.~~~~~~~~~~",
+        "~.....~~~~~~~~~",
+        "......~~~~~~~~~",
+        "........~~~~~..",
+        "...............",
+        "~.............~",
+        "~....o........~",
+        "~~~......o..~~~",
+        "~~~~~.....~~~~~"
       ]
     },
     "playerUnits": [
-      { "unitId": "wind_mage", "x": 1, "y": 5 },
-      { "unitId": "fire_mage", "x": 1, "y": 3 }
+      {
+        "unitId": "wind_mage",
+        "x": 2,
+        "y": 6
+      },
+      {
+        "unitId": "fire_mage",
+        "x": 1,
+        "y": 4
+      }
     ],
     "enemyUnits": [
-      { "unitId": "enemy_soldier", "x": 5, "y": 2 },
-      { "unitId": "enemy_soldier", "x": 5, "y": 5 },
-      { "unitId": "enemy_archer", "x": 6, "y": 3 },
-      { "unitId": "enemy_archer", "x": 6, "y": 6 }
+      {
+        "unitId": "enemy_soldier",
+        "x": 9,
+        "y": 2
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 10,
+        "y": 4
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 12,
+        "y": 4
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 11,
+        "y": 1
+      }
     ],
-    "winCondition": { "type": "defeat_all_enemies" }
+    "winCondition": {
+      "type": "defeat_all_enemies"
+    }
   },
   {
     "id": "level_003",
@@ -70,40 +113,65 @@
     "teach": "枪兵入队。桥道狭窄，敌人排成一列——「贯穿射击」一击洞穿整列。",
     "playerFirst": true,
     "board": {
-      "width": 10,
-      "height": 8,
-      "tiles": [
-        { "x": 0, "y": 0, "terrain": "wall" },
-        { "x": 1, "y": 0, "terrain": "wall" },
-        { "x": 2, "y": 1, "terrain": "wall" },
-        { "x": 3, "y": 1, "terrain": "wall" },
-        { "x": 4, "y": 1, "terrain": "wall" },
-        { "x": 5, "y": 1, "terrain": "wall" },
-        { "x": 6, "y": 1, "terrain": "wall" },
-        { "x": 7, "y": 1, "terrain": "wall" },
-        { "x": 2, "y": 6, "terrain": "wall" },
-        { "x": 3, "y": 6, "terrain": "wall" },
-        { "x": 4, "y": 6, "terrain": "wall" },
-        { "x": 5, "y": 6, "terrain": "wall" },
-        { "x": 6, "y": 6, "terrain": "wall" },
-        { "x": 7, "y": 6, "terrain": "wall" },
-        { "x": 8, "y": 7, "terrain": "wall" },
-        { "x": 9, "y": 7, "terrain": "wall" }
+      "layout": [
+        "~~...~~~~~~~~~...~",
+        "......~~~~~~......",
+        "......~~~~~~......",
+        ".......~~~~~......",
+        "..................",
+        "..................",
+        "......~~~~~~......",
+        "......~~~~~~......",
+        "~~...~~~~~~~~~...~"
       ]
     },
     "playerUnits": [
-      { "unitId": "lancer", "x": 1, "y": 3 },
-      { "unitId": "wind_mage", "x": 1, "y": 4 },
-      { "unitId": "fire_mage", "x": 1, "y": 2 }
+      {
+        "unitId": "lancer",
+        "x": 3,
+        "y": 4
+      },
+      {
+        "unitId": "wind_mage",
+        "x": 2,
+        "y": 5
+      },
+      {
+        "unitId": "fire_mage",
+        "x": 2,
+        "y": 3
+      }
     ],
     "enemyUnits": [
-      { "unitId": "enemy_soldier", "x": 7, "y": 3 },
-      { "unitId": "enemy_soldier", "x": 7, "y": 4 },
-      { "unitId": "enemy_soldier", "x": 8, "y": 4 },
-      { "unitId": "enemy_archer", "x": 8, "y": 2 },
-      { "unitId": "enemy_archer", "x": 8, "y": 5 }
+      {
+        "unitId": "enemy_soldier",
+        "x": 14,
+        "y": 4
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 15,
+        "y": 4
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 14,
+        "y": 3
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 16,
+        "y": 5
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 16,
+        "y": 2
+      }
     ],
-    "winCondition": { "type": "defeat_all_enemies" }
+    "winCondition": {
+      "type": "defeat_all_enemies"
+    }
   },
   {
     "id": "level_004",
@@ -112,40 +180,91 @@
     "teach": "剑客入队。重甲兵挡在前排——用「破甲刺」削甲，再集火击破。",
     "playerFirst": true,
     "board": {
-      "width": 10,
-      "height": 10,
-      "tiles": [
-        { "x": 0, "y": 0, "terrain": "wall" },
-        { "x": 1, "y": 0, "terrain": "wall" },
-        { "x": 9, "y": 1, "terrain": "wall" },
-        { "x": 5, "y": 2, "terrain": "obstacle" },
-        { "x": 5, "y": 7, "terrain": "obstacle" },
-        { "x": 4, "y": 4, "terrain": "wall" },
-        { "x": 4, "y": 5, "terrain": "wall" },
-        { "x": 0, "y": 9, "terrain": "wall" },
-        { "x": 8, "y": 9, "terrain": "wall" },
-        { "x": 9, "y": 9, "terrain": "wall" }
+      "layout": [
+        "~~~........~~~~",
+        "~~..........~~~",
+        "~............~~",
+        "....o......o..~",
+        "...............",
+        "......~~~......",
+        "......~~~...o..",
+        "......~~~......",
+        "...............",
+        "~..o......o....",
+        "~~............~",
+        "~~~..........~~",
+        "~~~~........~~~"
       ]
     },
     "enemyStatOverrides": {
-      "enemy_soldier": { "hp": 88, "attack": 20, "defense": 7 },
-      "enemy_archer": { "hp": 60, "attack": 18, "speed": 71 },
-      "enemy_heavy": { "hp": 154, "attack": 24, "defense": 14 }
+      "enemy_soldier": {
+        "hp": 88,
+        "attack": 20,
+        "defense": 7
+      },
+      "enemy_archer": {
+        "hp": 60,
+        "attack": 18,
+        "speed": 71
+      },
+      "enemy_heavy": {
+        "hp": 154,
+        "attack": 24,
+        "defense": 14
+      }
     },
     "playerUnits": [
-      { "unitId": "fire_mage", "x": 1, "y": 2 },
-      { "unitId": "wind_mage", "x": 1, "y": 4 },
-      { "unitId": "lancer", "x": 1, "y": 6 },
-      { "unitId": "swordsman", "x": 1, "y": 8 }
+      {
+        "unitId": "fire_mage",
+        "x": 1,
+        "y": 7
+      },
+      {
+        "unitId": "wind_mage",
+        "x": 1,
+        "y": 5
+      },
+      {
+        "unitId": "lancer",
+        "x": 2,
+        "y": 8
+      },
+      {
+        "unitId": "swordsman",
+        "x": 2,
+        "y": 4
+      }
     ],
     "enemyUnits": [
-      { "unitId": "enemy_heavy", "x": 6, "y": 4 },
-      { "unitId": "enemy_heavy", "x": 6, "y": 5 },
-      { "unitId": "enemy_soldier", "x": 7, "y": 3 },
-      { "unitId": "enemy_soldier", "x": 7, "y": 6 },
-      { "unitId": "enemy_archer", "x": 8, "y": 4 }
+      {
+        "unitId": "enemy_heavy",
+        "x": 10,
+        "y": 5
+      },
+      {
+        "unitId": "enemy_heavy",
+        "x": 10,
+        "y": 6
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 11,
+        "y": 8
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 11,
+        "y": 3
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 13,
+        "y": 6
+      }
     ],
-    "winCondition": { "type": "defeat_all_enemies" }
+    "winCondition": {
+      "type": "defeat_all_enemies"
+    }
   },
   {
     "id": "level_005",
@@ -154,41 +273,95 @@
     "teach": "冰法师入队，五人会合。用「冰封」冻住冲得最快的敌人，为聚拢与爆发争取时间。",
     "playerFirst": true,
     "board": {
-      "width": 9,
-      "height": 10,
-      "tiles": [
-        { "x": 0, "y": 0, "terrain": "wall" },
-        { "x": 1, "y": 0, "terrain": "wall" },
-        { "x": 8, "y": 0, "terrain": "wall" },
-        { "x": 4, "y": 4, "terrain": "trap" },
-        { "x": 6, "y": 5, "terrain": "trap" },
-        { "x": 3, "y": 7, "terrain": "trap" },
-        { "x": 5, "y": 4, "terrain": "obstacle" },
-        { "x": 0, "y": 9, "terrain": "wall" },
-        { "x": 7, "y": 9, "terrain": "wall" },
-        { "x": 8, "y": 9, "terrain": "wall" }
+      "layout": [
+        ".........~~~~~~~",
+        ".........~~~~~~~",
+        ".........~~~~~~~",
+        ".....o...~~~~~~~",
+        "............~~~~",
+        "~~~~..t.....~~~~",
+        "~~~~.....t..~~~~",
+        "~~~~............",
+        "~~~~~~~.t.......",
+        "~~~~~~~....o....",
+        "~~~~~~~.........",
+        "~~~~~~~........."
       ]
     },
     "enemyStatOverrides": {
-      "enemy_soldier": { "hp": 88, "attack": 20, "defense": 7 },
-      "enemy_archer": { "hp": 60, "attack": 18, "speed": 71 },
-      "enemy_heavy": { "hp": 154, "attack": 24, "defense": 14 }
+      "enemy_soldier": {
+        "hp": 88,
+        "attack": 20,
+        "defense": 7
+      },
+      "enemy_archer": {
+        "hp": 60,
+        "attack": 18,
+        "speed": 71
+      },
+      "enemy_heavy": {
+        "hp": 154,
+        "attack": 24,
+        "defense": 14
+      }
     },
     "playerUnits": [
-      { "unitId": "lancer", "x": 1, "y": 3 },
-      { "unitId": "swordsman", "x": 1, "y": 4 },
-      { "unitId": "fire_mage", "x": 2, "y": 5 },
-      { "unitId": "ice_mage", "x": 2, "y": 6 },
-      { "unitId": "wind_mage", "x": 1, "y": 7 }
+      {
+        "unitId": "lancer",
+        "x": 2,
+        "y": 8
+      },
+      {
+        "unitId": "swordsman",
+        "x": 3,
+        "y": 9
+      },
+      {
+        "unitId": "fire_mage",
+        "x": 1,
+        "y": 9
+      },
+      {
+        "unitId": "ice_mage",
+        "x": 1,
+        "y": 10
+      },
+      {
+        "unitId": "wind_mage",
+        "x": 2,
+        "y": 10
+      }
     ],
     "enemyUnits": [
-      { "unitId": "enemy_soldier", "x": 6, "y": 1 },
-      { "unitId": "enemy_archer", "x": 7, "y": 2 },
-      { "unitId": "enemy_heavy", "x": 8, "y": 5 },
-      { "unitId": "enemy_soldier", "x": 6, "y": 8 },
-      { "unitId": "enemy_archer", "x": 7, "y": 7 }
+      {
+        "unitId": "enemy_soldier",
+        "x": 12,
+        "y": 2
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 14,
+        "y": 1
+      },
+      {
+        "unitId": "enemy_heavy",
+        "x": 13,
+        "y": 3
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 9,
+        "y": 3
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 14,
+        "y": 3
+      }
     ],
-    "winCondition": { "type": "defeat_all_enemies" }
+    "winCondition": {
+      "type": "defeat_all_enemies"
+    }
   },
   {
     "id": "level_006",
@@ -196,42 +369,100 @@
     "backgroundId": "level_006",
     "teach": "全员出击。位移聚拢做局，冰火收割——反攻从谷口前哨开始。",
     "board": {
-      "width": 11,
-      "height": 10,
-      "tiles": [
-        { "x": 0, "y": 0, "terrain": "wall" },
-        { "x": 10, "y": 0, "terrain": "wall" },
-        { "x": 5, "y": 5, "terrain": "fire" },
-        { "x": 4, "y": 3, "terrain": "obstacle" },
-        { "x": 4, "y": 7, "terrain": "obstacle" },
-        { "x": 7, "y": 5, "terrain": "obstacle" },
-        { "x": 10, "y": 8, "terrain": "wall" },
-        { "x": 0, "y": 9, "terrain": "wall" },
-        { "x": 9, "y": 9, "terrain": "wall" },
-        { "x": 10, "y": 9, "terrain": "wall" }
+      "layout": [
+        "~~~~~.............",
+        "~~~~..............",
+        "~~~~..o..........~",
+        "~~~.........#...~~",
+        "~~..........#..~~~",
+        "~..............~~~",
+        "~.......#.....~~~~",
+        "........#....~~~~~",
+        "............~~~~~~",
+        "..........o.~~~~~~",
+        "...........~~~~~~~",
+        "..........~~~~~~~~"
       ]
     },
     "enemyStatOverrides": {
-      "enemy_soldier": { "hp": 88, "attack": 20, "defense": 7 },
-      "enemy_archer": { "hp": 60, "attack": 18, "speed": 71 },
-      "enemy_heavy": { "hp": 154, "attack": 24, "defense": 14 }
+      "enemy_soldier": {
+        "hp": 88,
+        "attack": 20,
+        "defense": 7
+      },
+      "enemy_archer": {
+        "hp": 60,
+        "attack": 18,
+        "speed": 71
+      },
+      "enemy_heavy": {
+        "hp": 154,
+        "attack": 24,
+        "defense": 14
+      }
     },
     "playerUnits": [
-      { "unitId": "fire_mage", "x": 1, "y": 3 },
-      { "unitId": "swordsman", "x": 1, "y": 4 },
-      { "unitId": "wind_mage", "x": 1, "y": 5 },
-      { "unitId": "ice_mage", "x": 1, "y": 6 },
-      { "unitId": "lancer", "x": 1, "y": 7 }
+      {
+        "unitId": "fire_mage",
+        "x": 1,
+        "y": 1
+      },
+      {
+        "unitId": "swordsman",
+        "x": 2,
+        "y": 2
+      },
+      {
+        "unitId": "wind_mage",
+        "x": 0,
+        "y": 2
+      },
+      {
+        "unitId": "ice_mage",
+        "x": 1,
+        "y": 0
+      },
+      {
+        "unitId": "lancer",
+        "x": 3,
+        "y": 1
+      }
     ],
     "enemyUnits": [
-      { "unitId": "enemy_soldier", "x": 6, "y": 2 },
-      { "unitId": "enemy_soldier", "x": 6, "y": 9 },
-      { "unitId": "enemy_archer", "x": 8, "y": 3 },
-      { "unitId": "enemy_archer", "x": 8, "y": 8 },
-      { "unitId": "enemy_soldier", "x": 7, "y": 6 },
-      { "unitId": "enemy_heavy", "x": 9, "y": 5 }
+      {
+        "unitId": "enemy_soldier",
+        "x": 9,
+        "y": 10
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 13,
+        "y": 9
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 14,
+        "y": 10
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 15,
+        "y": 9
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 10,
+        "y": 7
+      },
+      {
+        "unitId": "enemy_heavy",
+        "x": 12,
+        "y": 10
+      }
     ],
-    "winCondition": { "type": "defeat_all_enemies" }
+    "winCondition": {
+      "type": "defeat_all_enemies"
+    }
   },
   {
     "id": "level_007",
@@ -239,44 +470,102 @@
     "backgroundId": "level_007",
     "teach": "敌人把峡道布满陷阱与火油——反过来，把他们推入、聚入自己挖的坑里。",
     "board": {
-      "width": 11,
-      "height": 11,
-      "tiles": [
-        { "x": 0, "y": 0, "terrain": "wall" },
-        { "x": 1, "y": 0, "terrain": "wall" },
-        { "x": 10, "y": 0, "terrain": "wall" },
-        { "x": 5, "y": 3, "terrain": "trap" },
-        { "x": 5, "y": 7, "terrain": "trap" },
-        { "x": 6, "y": 5, "terrain": "trap" },
-        { "x": 7, "y": 4, "terrain": "fire" },
-        { "x": 7, "y": 6, "terrain": "fire" },
-        { "x": 4, "y": 5, "terrain": "obstacle" },
-        { "x": 0, "y": 10, "terrain": "wall" },
-        { "x": 9, "y": 10, "terrain": "wall" },
-        { "x": 10, "y": 10, "terrain": "wall" }
+      "layout": [
+        ".......~~~~~~~~~~",
+        ".......~~~~~~~~~~",
+        ".......~~~~~~~~~~",
+        ".......~~~~~~~~~~",
+        ".............o...",
+        "~~~~~............",
+        "~~~~~......tt....",
+        "~~~~~..o...t.....",
+        "~~~~~............",
+        ".............o...",
+        ".......~~~~~~~~~~",
+        ".......~~~~~~~~~~",
+        ".......~~~~~~~~~~",
+        ".......~~~~~~~~~~"
       ]
     },
     "enemyStatOverrides": {
-      "enemy_soldier": { "hp": 88, "attack": 20, "defense": 7 },
-      "enemy_archer": { "hp": 60, "attack": 18, "speed": 71 },
-      "enemy_heavy": { "hp": 154, "attack": 24, "defense": 14 }
+      "enemy_soldier": {
+        "hp": 88,
+        "attack": 20,
+        "defense": 7
+      },
+      "enemy_archer": {
+        "hp": 60,
+        "attack": 18,
+        "speed": 71
+      },
+      "enemy_heavy": {
+        "hp": 154,
+        "attack": 24,
+        "defense": 14
+      }
     },
     "playerUnits": [
-      { "unitId": "fire_mage", "x": 1, "y": 3 },
-      { "unitId": "ice_mage", "x": 1, "y": 4 },
-      { "unitId": "swordsman", "x": 1, "y": 5 },
-      { "unitId": "lancer", "x": 1, "y": 6 },
-      { "unitId": "wind_mage", "x": 1, "y": 7 }
+      {
+        "unitId": "fire_mage",
+        "x": 2,
+        "y": 12
+      },
+      {
+        "unitId": "ice_mage",
+        "x": 1,
+        "y": 11
+      },
+      {
+        "unitId": "swordsman",
+        "x": 3,
+        "y": 11
+      },
+      {
+        "unitId": "lancer",
+        "x": 2,
+        "y": 10
+      },
+      {
+        "unitId": "wind_mage",
+        "x": 1,
+        "y": 13
+      }
     ],
     "enemyUnits": [
-      { "unitId": "enemy_soldier", "x": 6, "y": 2 },
-      { "unitId": "enemy_soldier", "x": 6, "y": 8 },
-      { "unitId": "enemy_archer", "x": 9, "y": 3 },
-      { "unitId": "enemy_archer", "x": 9, "y": 7 },
-      { "unitId": "enemy_soldier", "x": 8, "y": 5 },
-      { "unitId": "enemy_heavy", "x": 9, "y": 5 }
+      {
+        "unitId": "enemy_soldier",
+        "x": 13,
+        "y": 5
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 13,
+        "y": 8
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 15,
+        "y": 9
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 15,
+        "y": 4
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 5,
+        "y": 2
+      },
+      {
+        "unitId": "enemy_heavy",
+        "x": 14,
+        "y": 6
+      }
     ],
-    "winCondition": { "type": "defeat_all_enemies" }
+    "winCondition": {
+      "type": "defeat_all_enemies"
+    }
   },
   {
     "id": "level_008",
@@ -284,44 +573,99 @@
     "backgroundId": "level_008",
     "teach": "城门死守，守军扎堆——「旋风斩」「暴风雪」专治成群的重甲。",
     "board": {
-      "width": 12,
-      "height": 10,
-      "tiles": [
-        { "x": 0, "y": 0, "terrain": "wall" },
-        { "x": 1, "y": 0, "terrain": "wall" },
-        { "x": 6, "y": 0, "terrain": "wall" },
-        { "x": 6, "y": 1, "terrain": "wall" },
-        { "x": 6, "y": 2, "terrain": "wall" },
-        { "x": 6, "y": 3, "terrain": "wall" },
-        { "x": 6, "y": 6, "terrain": "wall" },
-        { "x": 6, "y": 7, "terrain": "wall" },
-        { "x": 6, "y": 8, "terrain": "wall" },
-        { "x": 6, "y": 9, "terrain": "wall" },
-        { "x": 10, "y": 9, "terrain": "wall" },
-        { "x": 11, "y": 9, "terrain": "wall" }
+      "layout": [
+        "~~~~~.......#..~~~~~",
+        "~~~.........#....~~~",
+        "~.....o.....#......~",
+        "............#.......",
+        "............#.......",
+        "....................",
+        "....................",
+        "............#.......",
+        "~.....o.....#......~",
+        "~~~.........#....~~~",
+        "~~~~~.......#..~~~~~"
       ]
     },
     "enemyStatOverrides": {
-      "enemy_soldier": { "hp": 96, "attack": 22, "defense": 8 },
-      "enemy_archer": { "hp": 65, "attack": 20, "speed": 72 },
-      "enemy_heavy": { "hp": 168, "attack": 26, "defense": 16 }
+      "enemy_soldier": {
+        "hp": 96,
+        "attack": 22,
+        "defense": 8
+      },
+      "enemy_archer": {
+        "hp": 65,
+        "attack": 20,
+        "speed": 72
+      },
+      "enemy_heavy": {
+        "hp": 168,
+        "attack": 26,
+        "defense": 16
+      }
     },
     "playerUnits": [
-      { "unitId": "fire_mage", "x": 1, "y": 3 },
-      { "unitId": "swordsman", "x": 2, "y": 4 },
-      { "unitId": "wind_mage", "x": 1, "y": 5 },
-      { "unitId": "ice_mage", "x": 1, "y": 6 },
-      { "unitId": "lancer", "x": 2, "y": 5 }
+      {
+        "unitId": "fire_mage",
+        "x": 2,
+        "y": 4
+      },
+      {
+        "unitId": "swordsman",
+        "x": 4,
+        "y": 5
+      },
+      {
+        "unitId": "wind_mage",
+        "x": 2,
+        "y": 6
+      },
+      {
+        "unitId": "ice_mage",
+        "x": 1,
+        "y": 5
+      },
+      {
+        "unitId": "lancer",
+        "x": 4,
+        "y": 4
+      }
     ],
     "enemyUnits": [
-      { "unitId": "enemy_heavy", "x": 8, "y": 4 },
-      { "unitId": "enemy_heavy", "x": 8, "y": 5 },
-      { "unitId": "enemy_soldier", "x": 9, "y": 3 },
-      { "unitId": "enemy_soldier", "x": 9, "y": 6 },
-      { "unitId": "enemy_archer", "x": 10, "y": 4 },
-      { "unitId": "enemy_archer", "x": 10, "y": 5 }
+      {
+        "unitId": "enemy_heavy",
+        "x": 14,
+        "y": 4
+      },
+      {
+        "unitId": "enemy_heavy",
+        "x": 14,
+        "y": 5
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 15,
+        "y": 3
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 15,
+        "y": 6
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 17,
+        "y": 4
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 17,
+        "y": 5
+      }
     ],
-    "winCondition": { "type": "defeat_all_enemies" }
+    "winCondition": {
+      "type": "defeat_all_enemies"
+    }
   },
   {
     "id": "level_009",
@@ -329,40 +673,109 @@
     "backgroundId": "level_009",
     "teach": "被四面合围时，「旋风斩」「冰霜新星」以自身为中心横扫解围——敌人越扎堆，越好收割。",
     "board": {
-      "width": 12,
-      "height": 11,
-      "tiles": [
-        { "x": 0, "y": 0, "terrain": "wall" },
-        { "x": 11, "y": 0, "terrain": "wall" },
-        { "x": 3, "y": 3, "terrain": "obstacle" },
-        { "x": 7, "y": 7, "terrain": "obstacle" },
-        { "x": 0, "y": 10, "terrain": "wall" },
-        { "x": 10, "y": 10, "terrain": "wall" },
-        { "x": 11, "y": 10, "terrain": "wall" }
+      "layout": [
+        "~~~~~......~~~~~",
+        "~~~..........~~~",
+        "~~............~~",
+        "~.......o......~",
+        "~...f......f...~",
+        "................",
+        "................",
+        "...o............",
+        "............o...",
+        "................",
+        "................",
+        "~...f......f...~",
+        "~......o.......~",
+        "~~............~~",
+        "~~~..........~~~",
+        "~~~~~......~~~~~"
       ]
     },
     "enemyStatOverrides": {
-      "enemy_soldier": { "hp": 96, "attack": 22, "defense": 8 },
-      "enemy_archer": { "hp": 65, "attack": 20, "speed": 72 },
-      "enemy_heavy": { "hp": 168, "attack": 26, "defense": 16 }
+      "enemy_soldier": {
+        "hp": 96,
+        "attack": 22,
+        "defense": 8
+      },
+      "enemy_archer": {
+        "hp": 65,
+        "attack": 20,
+        "speed": 72
+      },
+      "enemy_heavy": {
+        "hp": 168,
+        "attack": 26,
+        "defense": 16
+      }
     },
     "playerUnits": [
-      { "unitId": "swordsman", "x": 5, "y": 4 },
-      { "unitId": "wind_mage", "x": 4, "y": 5 },
-      { "unitId": "fire_mage", "x": 5, "y": 5 },
-      { "unitId": "lancer", "x": 6, "y": 5 },
-      { "unitId": "ice_mage", "x": 5, "y": 6 }
+      {
+        "unitId": "swordsman",
+        "x": 7,
+        "y": 8
+      },
+      {
+        "unitId": "wind_mage",
+        "x": 6,
+        "y": 7
+      },
+      {
+        "unitId": "fire_mage",
+        "x": 8,
+        "y": 7
+      },
+      {
+        "unitId": "lancer",
+        "x": 9,
+        "y": 8
+      },
+      {
+        "unitId": "ice_mage",
+        "x": 7,
+        "y": 6
+      }
     ],
     "enemyUnits": [
-      { "unitId": "enemy_soldier", "x": 5, "y": 1 },
-      { "unitId": "enemy_archer", "x": 1, "y": 5 },
-      { "unitId": "enemy_soldier", "x": 9, "y": 5 },
-      { "unitId": "enemy_archer", "x": 5, "y": 9 },
-      { "unitId": "enemy_heavy", "x": 2, "y": 2 },
-      { "unitId": "enemy_heavy", "x": 8, "y": 8 },
-      { "unitId": "enemy_soldier", "x": 2, "y": 8 }
+      {
+        "unitId": "enemy_soldier",
+        "x": 7,
+        "y": 14
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 1,
+        "y": 8
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 14,
+        "y": 7
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 8,
+        "y": 1
+      },
+      {
+        "unitId": "enemy_heavy",
+        "x": 3,
+        "y": 12
+      },
+      {
+        "unitId": "enemy_heavy",
+        "x": 12,
+        "y": 3
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 3,
+        "y": 3
+      }
     ],
-    "winCondition": { "type": "defeat_all_enemies" }
+    "winCondition": {
+      "type": "defeat_all_enemies"
+    }
   },
   {
     "id": "level_010",
@@ -370,43 +783,101 @@
     "backgroundId": "level_010",
     "teach": "先冻住、控住统帅的重甲护卫，斩断爪牙，再全员合力击破铁甲统帅。",
     "board": {
-      "width": 12,
-      "height": 12,
-      "tiles": [
-        { "x": 0, "y": 0, "terrain": "wall" },
-        { "x": 1, "y": 0, "terrain": "wall" },
-        { "x": 11, "y": 0, "terrain": "wall" },
-        { "x": 5, "y": 5, "terrain": "fire" },
-        { "x": 6, "y": 6, "terrain": "fire" },
-        { "x": 2, "y": 2, "terrain": "obstacle" },
-        { "x": 9, "y": 9, "terrain": "obstacle" },
-        { "x": 5, "y": 8, "terrain": "wall" },
-        { "x": 6, "y": 8, "terrain": "wall" },
-        { "x": 0, "y": 11, "terrain": "wall" },
-        { "x": 10, "y": 11, "terrain": "wall" },
-        { "x": 11, "y": 11, "terrain": "wall" }
+      "layout": [
+        "~~~~~~........~~~~~~",
+        "~~~~~~...t....~~~~~~",
+        "~~~~~~........~~~~~~",
+        "~~~~~~........~~~~~~",
+        "....................",
+        "....................",
+        "....o.....f....o....",
+        "....o....f.....o....",
+        "....................",
+        "....................",
+        "~~~~~~........~~~~~~",
+        "~~~~~~........~~~~~~",
+        "~~~~~~....t...~~~~~~",
+        "~~~~~~........~~~~~~"
       ]
     },
     "enemyStatOverrides": {
-      "enemy_soldier": { "hp": 96, "attack": 22, "defense": 8 },
-      "enemy_archer": { "hp": 65, "attack": 20, "speed": 72 },
-      "enemy_heavy": { "hp": 168, "attack": 26, "defense": 16 }
+      "enemy_soldier": {
+        "hp": 96,
+        "attack": 22,
+        "defense": 8
+      },
+      "enemy_archer": {
+        "hp": 65,
+        "attack": 20,
+        "speed": 72
+      },
+      "enemy_heavy": {
+        "hp": 168,
+        "attack": 26,
+        "defense": 16
+      }
     },
     "playerUnits": [
-      { "unitId": "fire_mage", "x": 1, "y": 4 },
-      { "unitId": "swordsman", "x": 2, "y": 5 },
-      { "unitId": "wind_mage", "x": 1, "y": 6 },
-      { "unitId": "ice_mage", "x": 1, "y": 7 },
-      { "unitId": "lancer", "x": 1, "y": 5 }
+      {
+        "unitId": "fire_mage",
+        "x": 1,
+        "y": 6
+      },
+      {
+        "unitId": "swordsman",
+        "x": 3,
+        "y": 7
+      },
+      {
+        "unitId": "wind_mage",
+        "x": 1,
+        "y": 7
+      },
+      {
+        "unitId": "ice_mage",
+        "x": 1,
+        "y": 8
+      },
+      {
+        "unitId": "lancer",
+        "x": 3,
+        "y": 6
+      }
     ],
     "enemyUnits": [
-      { "unitId": "enemy_heavy", "x": 9, "y": 5 },
-      { "unitId": "enemy_heavy", "x": 10, "y": 3 },
-      { "unitId": "enemy_heavy", "x": 10, "y": 7 },
-      { "unitId": "enemy_archer", "x": 8, "y": 2 },
-      { "unitId": "enemy_archer", "x": 8, "y": 9 },
-      { "unitId": "enemy_soldier", "x": 7, "y": 5 }
+      {
+        "unitId": "enemy_heavy",
+        "x": 16,
+        "y": 6
+      },
+      {
+        "unitId": "enemy_heavy",
+        "x": 16,
+        "y": 7
+      },
+      {
+        "unitId": "enemy_heavy",
+        "x": 15,
+        "y": 5
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 18,
+        "y": 7
+      },
+      {
+        "unitId": "enemy_archer",
+        "x": 18,
+        "y": 6
+      },
+      {
+        "unitId": "enemy_soldier",
+        "x": 13,
+        "y": 6
+      }
     ],
-    "winCondition": { "type": "defeat_all_enemies" }
+    "winCondition": {
+      "type": "defeat_all_enemies"
+    }
   }
 ]

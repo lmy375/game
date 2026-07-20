@@ -296,3 +296,72 @@ describe("敌方行动预告（先亮范围再行动）", () => {
     expect(host.vm.overlay.threatMoveCells?.length).toBeGreaterThan(0);
   });
 });
+
+describe("void(空气)格交互拦截", () => {
+  /** 风术士站在崖边,(3,2)~(4,2) 一带是 void。 */
+  const VOID_LEVEL: LevelDef = {
+    id: "test_void",
+    name: "崖边",
+    playerFirst: true,
+    board: {
+      layout: [
+        "......",
+        "...~~.",
+        "......",
+      ],
+    },
+    playerUnits: [{ unitId: "wind_mage", x: 2, y: 1 }],
+    enemyUnits: [{ unitId: "enemy_soldier", x: 5, y: 0 }],
+    winCondition: { type: "defeat_all_enemies" },
+  };
+
+  let host: CaptureHost;
+  let session: BattleSession;
+
+  beforeEach(() => {
+    host = new CaptureHost();
+    session = new BattleSession(registry, host);
+    session.load(VOID_LEVEL);
+  });
+
+  it("layout 关卡可加载,void 不可走", () => {
+    const s = session.getState();
+    expect(s.board.width).toBe(6);
+    expect(s.board.height).toBe(3);
+    expect(s.board.terrainAt({ x: 3, y: 1 })).toBe("void");
+    expect(s.board.isWalkable({ x: 3, y: 1 })).toBe(false);
+  });
+
+  it("hover 到 void 格:无 hover 高亮", () => {
+    session.hoverCell({ x: 3, y: 1 });
+    expect(host.vm.overlay.hoverCell).toBeUndefined();
+    session.hoverCell({ x: 1, y: 1 });
+    expect(host.vm.overlay.hoverCell).toEqual({ x: 1, y: 1 });
+  });
+
+  it("点击 void 格:视为点空处,收起菜单且不移动", () => {
+    session.tapCell({ x: 2, y: 1 }); // 点自身展开菜单
+    expect(host.vm.menu.visible).toBe(true);
+    const before = session.getState().units[0].pos;
+    session.tapCell({ x: 3, y: 1 }); // 点 void
+    expect(host.vm.menu.visible).toBe(false);
+    expect(session.getState().units[0].pos).toEqual(before);
+  });
+
+  it("瞄准中 castCells 不含 void 格", () => {
+    session.tapCell({ x: 2, y: 1 });
+    const skillId = host.vm.menu.skills[0]?.id;
+    expect(skillId).toBeTruthy();
+    session.selectSkill(skillId!);
+    const cast = host.vm.overlay.castCells ?? [];
+    for (const c of cast) {
+      expect(session.getState().board.terrainAt(c)).not.toBe("void");
+    }
+  });
+
+  it("移动范围不含 void 与被隔断的格", () => {
+    const move = host.vm.overlay.moveCells ?? [];
+    expect(move.some((p) => p.x === 3 && p.y === 1)).toBe(false);
+    expect(move.some((p) => p.x === 4 && p.y === 1)).toBe(false);
+  });
+});

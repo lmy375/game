@@ -54,7 +54,7 @@ export class GridBoard {
   }
 
   terrainAt(p: Position): TerrainType {
-    if (!this.inBounds(p)) return "wall"; // 边界外视为墙
+    if (!this.inBounds(p)) return "void"; // 边界外是空气,与不规则轮廓外的格子同语义
     return this.grid[p.y][p.x];
   }
 

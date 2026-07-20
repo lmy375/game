@@ -2,7 +2,7 @@
  * DOM 屏幕渲染器：把 campaign 的屏幕 ViewModel 渲染成 标题/过场/结算/结局 全屏覆盖层。镜像 DomHud 的形状。
  * 立绘优先用 AssetManifest 的图片，缺图时回退「圆盘 + 字形」纯 CSS。
  */
-import { TitleVM, CutsceneVM, ResultVM, EndingVM, PortraitVM, LoadoutVM, InventoryItemVM, StatBonusVM } from "../../campaign";
+import { TitleVM, CutsceneVM, ResultVM, EndingVM, PortraitVM, LoadoutVM, InventoryItemVM, StatBonusVM, RarityVM } from "../../campaign";
 import { EquipSlot } from "@meta/index";
 import { portraitUrlFor } from "./AssetManifest";
 
@@ -18,6 +18,11 @@ export interface ScreenHandlers {
   equipSkill(defId: string, itemId: string, slotIndex: number): void;
   unequipSkill(defId: string, slotIndex: number): void;
   closeLoadout(): void;
+}
+
+/** 稀有度小标签（配色由 rarity-<tier> class 决定）。 */
+function rarityTag(r: RarityVM): string {
+  return `<span class="rarity-tag rarity-${r.tier}">${r.label}</span>`;
 }
 
 /** 属性加成徽标（如「攻击 +4」）。 */
@@ -126,8 +131,8 @@ export class DomScreens {
       .map((it) => {
         const equipped = it.equippedTo ? `<span class="loot-equipped">已装备给 ${it.equippedTo}</span>` : "";
         return (
-          `<div class="result-card loot-card"><span class="loot-icon">🎁</span>` +
-          `<div class="result-card-body"><div class="result-card-title loot-name"><span>${it.name}</span>${equipped}</div>` +
+          `<div class="result-card loot-card rarity-border-${it.rarity.tier}"><span class="loot-icon">🎁</span>` +
+          `<div class="result-card-body"><div class="result-card-title loot-name"><span class="rarity-${it.rarity.tier}">${it.name}</span>${rarityTag(it.rarity)}${equipped}</div>` +
           `<div class="result-card-sub">${it.description}</div></div></div>`
         );
       })
@@ -284,9 +289,12 @@ export class DomScreens {
           ? `<button class="lo-unequip" data-unequip="1" data-slot="${s.slot}" title="卸下">✕</button>`
           : "";
         const bonus = filled && s.item!.bonuses?.length ? `<span class="lo-slot-bonus">${bonusBadges(s.item!.bonuses)}</span>` : "";
-        const body = filled ? `<b>${s.item!.name}</b>${bonus}` : `<span class="slot-empty">空</span>`;
+        const body = filled
+          ? `<b class="rarity-${s.item!.rarity.tier}">${s.item!.name}</b>${bonus}`
+          : `<span class="slot-empty">空</span>`;
+        const rarityCls = filled ? `rarity-border-${s.item!.rarity.tier}` : "";
         return (
-          `<div class="lo-slot ${filled ? "filled" : ""} ${open ? "open" : ""}" data-slot-pick="${s.slot}">` +
+          `<div class="lo-slot ${filled ? "filled" : ""} ${rarityCls} ${open ? "open" : ""}" data-slot-pick="${s.slot}">` +
           `<span class="slot-label">${s.label}</span>${body}${unequip}</div>`
         );
       })
@@ -299,9 +307,12 @@ export class DomScreens {
         const unequip = filled
           ? `<button class="lo-unequip" data-unequip-skill="${s.index}" title="卸下">✕</button>`
           : "";
-        const body = filled ? `<b>${s.item!.name}</b>` : `<span class="slot-empty">空</span>`;
+        const body = filled
+          ? `<b class="rarity-${s.item!.rarity.tier}">${s.item!.name}</b>`
+          : `<span class="slot-empty">空</span>`;
+        const rarityCls = filled ? `rarity-border-${s.item!.rarity.tier}` : "";
         return (
-          `<div class="lo-slot lo-skillslot ${filled ? "filled" : ""} ${open ? "open" : ""}" data-skillslot-pick="${s.index}">` +
+          `<div class="lo-slot lo-skillslot ${filled ? "filled" : ""} ${rarityCls} ${open ? "open" : ""}" data-skillslot-pick="${s.index}">` +
           `<span class="slot-label">技能 ${s.index + 1}</span>${body}${unequip}</div>`
         );
       })
@@ -353,8 +364,8 @@ export class DomScreens {
       detail = `<div class="lo-item-detail"><p class="lo-desc">${it.description}</p>${btn}</div>`;
     }
     return (
-      `<div class="lo-item ${open ? "open" : ""}" data-item="${it.itemId}">` +
-      `<div class="lo-item-head">${icon}<b>${it.name}</b> ${count}${badges}<span class="lo-item-caret">${open ? "▴" : "▾"}</span></div>` +
+      `<div class="lo-item rarity-border-${it.rarity.tier} ${open ? "open" : ""}" data-item="${it.itemId}">` +
+      `<div class="lo-item-head">${icon}<b class="rarity-${it.rarity.tier}">${it.name}</b>${rarityTag(it.rarity)} ${count}${badges}<span class="lo-item-caret">${open ? "▴" : "▾"}</span></div>` +
       `${detail}</div>`
     );
   }

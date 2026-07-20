@@ -7,6 +7,26 @@ import { UnitStats, ItemEffect } from "@core/index";
 
 export type ItemKind = "equip" | "consumable" | "skill";
 
+/** 稀有度：五档，由低到高（灰/绿/蓝/红/橙）。 */
+export type Rarity = "gray" | "green" | "blue" | "red" | "orange";
+
+/** 全部稀有度（由低到高的固定顺序，权重表与降档回退都依赖此序）。 */
+export const RARITIES: readonly Rarity[] = ["gray", "green", "blue", "red", "orange"];
+
+/** 稀有度中文名（UI 展示）。 */
+export const RARITY_LABELS: Record<Rarity, string> = {
+  gray: "普通",
+  green: "优良",
+  blue: "稀有",
+  red: "史诗",
+  orange: "传说",
+};
+
+/** 稀有度序号（gray=0 … orange=4），用于排序与比较。 */
+export function rarityRank(r: Rarity): number {
+  return RARITIES.indexOf(r);
+}
+
 /** 每个单位的技能栏格数。 */
 export const SKILL_SLOT_COUNT = 5;
 
@@ -34,6 +54,8 @@ export interface ItemDef {
   id: string;
   name: string;
   kind: ItemKind;
+  /** 稀有度（掉落权重与 UI 配色都用它）。 */
+  rarity: Rarity;
   description: string;
   /** kind==="equip" 时存在：所属槽位。 */
   slot?: EquipSlot;

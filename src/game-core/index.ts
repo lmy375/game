@@ -5,6 +5,7 @@
 export * from "./board/geometry";
 export * from "./board/terrain";
 export * from "./board/GridBoard";
+export * from "./board/layout";
 export * from "./unit/Unit";
 export * from "./state/BattleState";
 export * from "./state/events";

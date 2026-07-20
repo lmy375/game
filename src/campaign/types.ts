@@ -3,8 +3,14 @@
  * 引擎无关：只认识 game-core / game-meta 的数据，不认识 DOM / 引擎。镜像 interaction 的 ViewModel/Host 形状。
  */
 import { BattleState, LevelDef, UnitStats } from "@core/index";
-import { EquipSlot } from "@meta/index";
+import { EquipSlot, Rarity } from "@meta/index";
 import { BattleItem, UnitStatPatch } from "../interaction";
+
+/** 物品稀有度的展示信息（tier 供配色 class，label 为中文档名）。 */
+export interface RarityVM {
+  tier: Rarity;
+  label: string;
+}
 
 /** 立绘 token：复用「圆盘 + 字形」单位视觉语言，无图片资源。 */
 export interface PortraitVM {
@@ -40,6 +46,7 @@ export interface CutsceneVM {
 export interface ResultItemVM {
   name: string;
   description: string;
+  rarity: RarityVM;
   /** 技能道具被自动装备时：接收单位的名字（供结算屏标注「已装备给 ×××」）。 */
   equippedTo?: string;
 }
@@ -74,6 +81,7 @@ export interface InventoryItemVM {
   itemId: string;
   name: string;
   description: string;
+  rarity: RarityVM;
   /** 装备槽位（非装备为 undefined）。 */
   slot?: EquipSlot;
   /** 装备的属性加成（非装备为 undefined）。 */
@@ -88,14 +96,14 @@ export interface LoadoutSlotVM {
   slot: EquipSlot;
   label: string;
   /** 已装备物品（空槽为 undefined）。 */
-  item?: { itemId: string; name: string; description: string; bonuses?: StatBonusVM[] };
+  item?: { itemId: string; name: string; description: string; rarity: RarityVM; bonuses?: StatBonusVM[] };
 }
 
 /** 单位技能栏一格的展示。 */
 export interface SkillSlotVM {
   index: number;
   /** 已装入的技能道具（空格为 undefined）。 */
-  item?: { itemId: string; name: string; description: string };
+  item?: { itemId: string; name: string; description: string; rarity: RarityVM };
 }
 
 /** 整备界面里一个单位的面板。 */

@@ -50,6 +50,7 @@ export function getCastableCells(state: BattleState, caster: Unit, skill: SkillD
     for (let x = 0; x < state.board.width; x++) {
       for (let y = 0; y < state.board.height; y++) {
         const p = { x, y };
+        if (state.board.terrainAt(p) === "void") continue; // 空气格不可作为目标
         const d = manhattan(caster.pos, p);
         if (d >= min && d <= max) cells.push(p);
       }
@@ -66,7 +67,7 @@ export function getCastableCells(state: BattleState, caster: Unit, skill: SkillD
       // 方向技能由 direction 选择，这里返回前方第一格作为代表点
       for (const dir of ALL_DIRECTIONS) {
         const p = add(caster.pos, DIRECTION_VECTOR[dir]);
-        if (state.board.inBounds(p)) cells.push(p);
+        if (state.board.inBounds(p) && state.board.terrainAt(p) !== "void") cells.push(p);
       }
       break;
   }

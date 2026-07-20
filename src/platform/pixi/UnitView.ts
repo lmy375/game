@@ -22,10 +22,11 @@ class UnitSprite {
   private face = new Graphics();
   private statuses = new Text({ text: "", style: { fontSize: 13, fill: "#fff", fontWeight: "bold" } });
 
-  constructor(unit: Unit, center: { x: number; y: number }) {
+  constructor(unit: Unit, center: { x: number; y: number }, comp = 1) {
     this.maxHp = unit.maxHp;
     this.factionColor = FACTION[unit.faction] ?? FACTION.enemy;
     this.container.position.set(center.x, center.y);
+    this.container.scale.set(comp); // 大棋盘整体缩小后,放大立绘/血条保证屏显可读
     this.sprite = Sprite.from(unitSpriteUrls[unit.defId as keyof typeof unitSpriteUrls] ?? unitSpriteUrls.enemy_soldier);
     this.sprite.anchor.set(0.5, 0.72);
     this.sprite.width = 72;
@@ -99,10 +100,13 @@ export class UnitView {
   private map = new Map<string, UnitSprite>();
   private layer!: Container;
   private grid!: Grid;
+  private comp = 1;
 
-  build(grid: Grid, layer: Container): void {
+  /** comp:立绘可读性补偿系数(随 world 缩放增大,由表现层按棋盘缩放计算)。 */
+  build(grid: Grid, layer: Container, comp = 1): void {
     this.grid = grid;
     this.layer = layer;
+    this.comp = comp;
   }
 
   sync(state: BattleState): void {
@@ -113,7 +117,7 @@ export class UnitView {
       let s = this.map.get(u.instanceId);
       const c = this.grid.center(u.pos);
       if (!s) {
-        s = new UnitSprite(u, c);
+        s = new UnitSprite(u, c, this.comp);
         this.layer.addChild(s.container);
         this.map.set(u.instanceId, s);
       } else {

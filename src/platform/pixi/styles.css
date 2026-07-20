@@ -303,6 +303,38 @@ body.screen-active #level-select-wrap { visibility: visible; position: relative;
 }
 .result-list { display: flex; flex-direction: column; gap: 8px; }
 
+/* 稀有度配色（灰/绿/蓝/红/橙五档，肉鸽掉落）*/
+:root {
+  --rarity-gray: #9aa4b2;
+  --rarity-green: #5fd47a;
+  --rarity-blue: #4aa8ff;
+  --rarity-red: #ff5a6a;
+  --rarity-orange: #ffb020;
+}
+.rarity-gray { color: var(--rarity-gray); }
+.rarity-green { color: var(--rarity-green); }
+.rarity-blue { color: var(--rarity-blue); }
+.rarity-red { color: var(--rarity-red); }
+.rarity-orange { color: var(--rarity-orange); }
+/* 名称本身按稀有度着色时保持粗体可读 */
+b.rarity-gray, b.rarity-green, b.rarity-blue, b.rarity-red, b.rarity-orange { font-weight: 700; }
+/* 稀有度左边框：物品卡/槽位/背包行统一用它标出品质 */
+.rarity-border-gray { border-left: 3px solid var(--rarity-gray); }
+.rarity-border-green { border-left: 3px solid var(--rarity-green); }
+.rarity-border-blue { border-left: 3px solid var(--rarity-blue); }
+.rarity-border-red { border-left: 3px solid var(--rarity-red); }
+.rarity-border-orange { border-left: 3px solid var(--rarity-orange); box-shadow: 0 0 10px rgba(255,176,32,.25); }
+/* 稀有度小标签 */
+.rarity-tag {
+  font-size: 11px; font-weight: 700; border-radius: 5px; padding: 1px 6px; line-height: 1.5;
+  white-space: nowrap;
+}
+.rarity-tag.rarity-gray { color: var(--rarity-gray); background: rgba(154,164,178,.14); }
+.rarity-tag.rarity-green { color: var(--rarity-green); background: rgba(95,212,122,.14); }
+.rarity-tag.rarity-blue { color: var(--rarity-blue); background: rgba(74,168,255,.14); }
+.rarity-tag.rarity-red { color: var(--rarity-red); background: rgba(255,90,106,.14); }
+.rarity-tag.rarity-orange { color: var(--rarity-orange); background: rgba(255,176,32,.16); }
+
 /* 战利品卡片 */
 .result-card {
   display: flex; align-items: center; gap: 12px;

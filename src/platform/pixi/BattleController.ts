@@ -118,7 +118,7 @@ export class BattleController implements SessionHost {
 
   // ---------- SessionHost 实现 ----------
   setupLevel(level: LevelDef, state: BattleState): void {
-    this.grid = new Grid(level.board.width, level.board.height);
+    this.grid = new Grid(state.board.width, state.board.height); // 尺寸取解析后的棋盘,layout 定义由核心层解析
     const backgroundId = level.backgroundId as keyof typeof battleBackgroundUrls | undefined;
     this.stage.setBackground(backgroundId ? battleBackgroundUrls[backgroundId] ?? battleBackgroundUrls.default : battleBackgroundUrls.default);
     this.layoutBoard();
@@ -130,7 +130,9 @@ export class BattleController implements SessionHost {
     this.overlay = new OverlayView();
     this.overlay.build(this.grid, this.stage.overlay);
     this.units = new UnitView();
-    this.units.build(this.grid, this.stage.units);
+    // 立绘可读性补偿:棋盘越大 world 缩得越小,立绘按比例放大(上限防止挤占相邻格)。
+    const comp = Math.min(1.4, Math.max(1, 0.72 / this.stage.world.scale.x));
+    this.units.build(this.grid, this.stage.units, comp);
     this.effects = new Effects(this.stage.fx, this.stage.world, this.grid, this.animator);
     this.events = new EventAnimator(this.grid, this.units, this.board, this.effects, this.animator);
     this.units.sync(state);
@@ -253,12 +255,14 @@ export class BattleController implements SessionHost {
     this.previewLabels = [];
   }
   private drawPreviewLabels(labels: NonNullable<ViewModel["overlay"]["damage"]>): void {
+    // 大棋盘缩小后世界坐标系文字会一起缩小,按 world 缩放补偿字号保证屏显可读。
+    const comp = Math.min(2.2, Math.max(1, 1 / this.stage.world.scale.x));
     for (const l of labels) {
       const c = this.grid.center(l.pos);
       const color = l.kind === "heal" ? "#5fcf6a" : l.lethal ? "#ff5a45" : "#ffd24a";
       const t = new Text({
         text: `${l.kind === "heal" ? "+" : "-"}${l.amount}`,
-        style: { fontSize: 20, fill: color, fontWeight: "bold", stroke: { color: 0x000000, width: 4 } },
+        style: { fontSize: Math.round(20 * comp), fill: color, fontWeight: "bold", stroke: { color: 0x000000, width: 4 } },
       });
       t.anchor.set(0.5);
       t.position.set(c.x, c.y - 26);

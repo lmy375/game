@@ -22,7 +22,7 @@ export class Grid {
     readonly height: number,
     readonly tileW = 116,
     readonly tileH = 58,
-    thickness = 16
+    thickness = 34 // 悬崖侧壁厚度:不规则大陆的暴露崖壁,pxHeight 计入避免底边被裁
   ) {
     this.halfW = tileW / 2;
     this.halfH = tileH / 2;
