@@ -42,6 +42,9 @@ export interface Targeting {
   targetCell: Position; // 名义目标格（用于聚拢中心等）
 }
 
+/** 施法几何只依赖位置与朝向；威胁区可用虚拟原点复用，无需构造完整 Unit。 */
+export type TargetingCaster = Pick<Unit, "pos" | "facing">;
+
 /** 计算技能的施法目标点候选（用于预览与 AI 枚举）。 */
 export function getCastableCells(state: BattleState, caster: Unit, skill: SkillDef): Position[] {
   const range = skill.castRange;
@@ -75,7 +78,12 @@ export function getCastableCells(state: BattleState, caster: Unit, skill: SkillD
 }
 
 /** 解析施法朝向与 Pattern 原点。 */
-export function resolveTargeting(caster: Unit, skill: SkillDef, pattern: PatternDef, target: SkillTarget): Targeting {
+export function resolveTargeting(
+  caster: TargetingCaster,
+  skill: SkillDef,
+  pattern: PatternDef,
+  target: SkillTarget
+): Targeting {
   let dir: Direction;
   let targetCell: Position;
 

@@ -2,7 +2,7 @@
  * 战斗模拟器：纯函数。simulate(state, action) -> { nextState, events }。
  * 不修改输入 state；预览与 AI 都复用这一套模拟。
  */
-import { Position, Direction, eq, clone } from "../board/geometry";
+import { Position, Direction, eq, clone, chebyshev } from "../board/geometry";
 import { BattleState, cloneState, unitById, evaluateOutcome, isStandable } from "../state/BattleState";
 import { isAlive } from "../unit/Unit";
 import { BattleEvent } from "../state/events";
@@ -20,6 +20,15 @@ export function restHealAmount(maxHp: number): number {
   return Math.max(1, Math.round(maxHp * REST_HEAL_RATIO));
 }
 
+/** 核心层执行消耗品所需的权威规则；具体物品表由上层通过 resolver 注入。 */
+export interface BattleItemRule {
+  effect: ItemEffect;
+  /** 切比雪夫距离；0 表示只能对自身使用。 */
+  range: number;
+}
+
+export type BattleItemResolver = (itemId: string) => BattleItemRule | undefined;
+
 export type BattleAction =
   | { type: "move"; actorId: string; moveTo: Position }
   | {
@@ -30,7 +39,7 @@ export type BattleAction =
       targetUnitId?: string;
       direction?: Direction;
     }
-  | { type: "use_item"; actorId: string; targetUnitId: string; itemId: string; effect: ItemEffect }
+  | { type: "use_item"; actorId: string; targetUnitId: string; itemId: string }
   | { type: "rest"; actorId: string }
   | { type: "wait"; actorId: string }
   | { type: "end_turn" };
@@ -44,7 +53,10 @@ export interface BattleResult {
 }
 
 export class BattleSimulator {
-  constructor(private readonly registry: ContentRegistry) {}
+  constructor(
+    private readonly registry: ContentRegistry,
+    private readonly resolveItem?: BattleItemResolver
+  ) {}
 
   simulate(state: BattleState, action: BattleAction): BattleResult {
     const next = cloneState(state);
@@ -137,7 +149,7 @@ export class BattleSimulator {
     return { nextState: state, events, ok: true };
   }
 
-  /** 使用消耗品：占用「技能行动」（actedThisTurn），仍可移动。射程校验由交互层负责，core 只认 target。 */
+  /** 使用消耗品：核心层解析效果并校验目标阵营与射程；占用技能行动，仍可移动。 */
   private doUseItem(
     state: BattleState,
     events: BattleEvent[],
@@ -146,11 +158,17 @@ export class BattleSimulator {
   ): BattleResult {
     const actor = unitById(state, actorId)!;
     if (actor.actedThisTurn) return { nextState: state, events, ok: false, error: "本回合已行动" };
+    const item = this.resolveItem?.(action.itemId);
+    if (!item) return { nextState: state, events, ok: false, error: "无效物品" };
     const target = unitById(state, action.targetUnitId);
     if (!target || !isAlive(target)) return { nextState: state, events, ok: false, error: "无效目标" };
+    if (target.faction !== actor.faction) return { nextState: state, events, ok: false, error: "只能对友方使用" };
+    if (chebyshev(actor.pos, target.pos) > item.range) {
+      return { nextState: state, events, ok: false, error: "目标超出道具射程" };
+    }
 
     events.push({ type: "item_used", userId: actorId, itemId: action.itemId, targetUnitId: target.instanceId });
-    applyItemEffect(state, target, action.effect, events);
+    applyItemEffect(state, target, item.effect, events);
     actor.actedThisTurn = true;
 
     this.finalize(state, events);

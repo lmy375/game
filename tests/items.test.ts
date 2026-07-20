@@ -208,11 +208,16 @@ describe("多槽装备加成累加", () => {
 });
 
 describe("core: use_item 动作", () => {
+  const itemRules = (itemId: string) => {
+    const def = tables.items[itemId];
+    return def?.effect ? { effect: def.effect, range: def.range ?? 0 } : undefined;
+  };
+
   it("heal 补血且不超过 maxHp；占用技能行动、仍可移动", () => {
-    const sim = new BattleSimulator(registry);
+    const sim = new BattleSimulator(registry, itemRules);
     const hero = makeUnit("player", { x: 0, y: 0 }, { instanceId: "p1", stats: { hp: 100 }, hp: 40, maxHp: 100 });
     const state = makeState(5, 5, [hero]);
-    const res = sim.simulate(state, { type: "use_item", actorId: "p1", targetUnitId: "p1", itemId: "minor_potion", effect: { type: "heal", amount: 30 } });
+    const res = sim.simulate(state, { type: "use_item", actorId: "p1", targetUnitId: "p1", itemId: "minor_potion" });
     expect(res.ok).toBe(true);
     const after = unitById(res.nextState, "p1")!;
     expect(after.hp).toBe(70);
@@ -223,26 +228,38 @@ describe("core: use_item 动作", () => {
   });
 
   it("heal 不超过 maxHp", () => {
-    const sim = new BattleSimulator(registry);
+    const sim = new BattleSimulator(registry, itemRules);
     const hero = makeUnit("player", { x: 0, y: 0 }, { instanceId: "p1", stats: { hp: 100 }, hp: 90, maxHp: 100 });
-    const res = sim.simulate(makeState(5, 5, [hero]), { type: "use_item", actorId: "p1", targetUnitId: "p1", itemId: "minor_potion", effect: { type: "heal", amount: 30 } });
+    const res = sim.simulate(makeState(5, 5, [hero]), { type: "use_item", actorId: "p1", targetUnitId: "p1", itemId: "minor_potion" });
     expect(unitById(res.nextState, "p1")!.hp).toBe(100);
   });
 
   it("cleanse 清除全部负面状态并发 unit_status_expired", () => {
-    const sim = new BattleSimulator(registry);
+    const sim = new BattleSimulator(registry, itemRules);
     const hero = makeUnit("player", { x: 0, y: 0 }, { instanceId: "p1", statuses: [{ id: "burn", duration: 2, magnitude: 5 }, { id: "stun", duration: 1 }] });
-    const res = sim.simulate(makeState(5, 5, [hero]), { type: "use_item", actorId: "p1", targetUnitId: "p1", itemId: "purify_herb", effect: { type: "cleanse" } });
+    const res = sim.simulate(makeState(5, 5, [hero]), { type: "use_item", actorId: "p1", targetUnitId: "p1", itemId: "purify_herb" });
     expect(unitById(res.nextState, "p1")!.statuses).toEqual([]);
     const expired = res.events.filter((e) => e.type === "unit_status_expired");
     expect(expired.length).toBe(2);
   });
 
   it("已行动的单位不能再用道具", () => {
-    const sim = new BattleSimulator(registry);
+    const sim = new BattleSimulator(registry, itemRules);
     const hero = makeUnit("player", { x: 0, y: 0 }, { instanceId: "p1", actedThisTurn: true, hp: 40, maxHp: 100, stats: { hp: 100 } });
-    const res = sim.simulate(makeState(5, 5, [hero]), { type: "use_item", actorId: "p1", targetUnitId: "p1", itemId: "minor_potion", effect: { type: "heal", amount: 30 } });
+    const res = sim.simulate(makeState(5, 5, [hero]), { type: "use_item", actorId: "p1", targetUnitId: "p1", itemId: "minor_potion" });
     expect(res.ok).toBe(false);
+  });
+
+  it("拒绝未知物品、敌方目标和超出射程的目标", () => {
+    const sim = new BattleSimulator(registry, itemRules);
+    const hero = makeUnit("player", { x: 0, y: 0 }, { instanceId: "p1", hp: 40, maxHp: 100, stats: { hp: 100 } });
+    const ally = makeUnit("player", { x: 2, y: 0 }, { instanceId: "p2", hp: 40, maxHp: 100, stats: { hp: 100 } });
+    const enemy = makeUnit("enemy", { x: 0, y: 1 }, { instanceId: "e1" });
+    const state = makeState(5, 5, [hero, ally, enemy]);
+
+    expect(sim.simulate(state, { type: "use_item", actorId: "p1", targetUnitId: "p1", itemId: "forged" }).error).toContain("无效物品");
+    expect(sim.simulate(state, { type: "use_item", actorId: "p1", targetUnitId: "e1", itemId: "minor_potion" }).error).toContain("友方");
+    expect(sim.simulate(state, { type: "use_item", actorId: "p1", targetUnitId: "p2", itemId: "minor_potion" }).error).toContain("射程");
   });
 
   it("applyItemEffect 直接调用：heal 追加 unit_healed 事件", () => {

@@ -220,28 +220,27 @@ export class CampaignDirector {
 
   /** 给某单位装上背包里的一件装备（槽位由物品决定）。 */
   doEquip(defId: string, itemId: string): void {
-    this.profile = equipItem(this.profile, defId, itemId, this.deps.tables.items);
-    this.persist();
-    this.deps.host.showLoadout(this.loadoutVM());
+    this.updateLoadout((profile) => equipItem(profile, defId, itemId, this.deps.tables.items));
   }
 
   /** 卸下某单位某槽的装备（退回背包）。 */
   doUnequip(defId: string, slot: EquipSlot): void {
-    this.profile = unequipItem(this.profile, defId, slot);
-    this.persist();
-    this.deps.host.showLoadout(this.loadoutVM());
+    this.updateLoadout((profile) => unequipItem(profile, defId, slot));
   }
 
   /** 给某单位技能栏装上背包里的一件技能道具（slotIndex 缺省=第一个空格；指定且被占用=替换）。 */
   doEquipSkill(defId: string, itemId: string, slotIndex?: number): void {
-    this.profile = equipSkillItem(this.profile, defId, itemId, this.deps.tables.items, slotIndex);
-    this.persist();
-    this.deps.host.showLoadout(this.loadoutVM());
+    this.updateLoadout((profile) => equipSkillItem(profile, defId, itemId, this.deps.tables.items, slotIndex));
   }
 
   /** 卸下某单位技能栏某格的技能道具（退回背包）。 */
   doUnequipSkill(defId: string, slotIndex: number): void {
-    this.profile = unequipSkillItem(this.profile, defId, slotIndex);
+    this.updateLoadout((profile) => unequipSkillItem(profile, defId, slotIndex));
+  }
+
+  /** 整备命令的统一提交点：更新档案、持久化并刷新 ViewModel。 */
+  private updateLoadout(update: (profile: PlayerProfile) => PlayerProfile): void {
+    this.profile = update(this.profile);
     this.persist();
     this.deps.host.showLoadout(this.loadoutVM());
   }
@@ -315,6 +314,9 @@ export class CampaignDirector {
   }
 
   private onBattleEnd(battleNodeId: string, outcome: BattleState["outcome"], finalState: BattleState): void {
+    // 结束回调必须幂等：动画层、调试入口或重复事件不能让同一场战斗重复发奖励。
+    if (this.activeBattle?.battleNodeId !== battleNodeId) return;
+    this.activeBattle = null;
     const level = this.deps.levelOf((nodeById(this.deps.tables.story, battleNodeId) as { levelId: string }).levelId);
 
     if (outcome === "player_win") {

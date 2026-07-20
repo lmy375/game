@@ -7,6 +7,9 @@ import patternsRaw from "./patterns.json";
 import skillsRaw from "./skills.json";
 import unitsRaw from "./units.json";
 import levelsRaw from "./levels.json";
+import { validateGameData } from "./validateGameData";
+
+export { validateGameData, collectGameDataIssues, bundledGameData, GameDataValidationError } from "./validateGameData";
 
 // JSON 推断为宽泛 string 字面量，这里断言为强类型定义（结构由测试与运行时保证）。
 export const patterns = patternsRaw as unknown as PatternDef[];
@@ -15,6 +18,7 @@ export const units = unitsRaw as unknown as UnitDef[];
 export const levels = levelsRaw as unknown as LevelDef[];
 
 export function createRegistry(): ContentRegistry {
+  validateGameData();
   return new ContentRegistry().addPatterns(patterns).addSkills(skills).addUnits(units);
 }
 

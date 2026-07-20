@@ -42,6 +42,7 @@ import {
   UnitStats,
   computeThreatCells,
   ThreatCells,
+  SkillPreview,
 } from "@core/index";
 import {
   SessionHost,
@@ -114,7 +115,10 @@ export class BattleSession {
     private readonly host: SessionHost,
     private readonly hooks: BattleSessionHooks = {}
   ) {
-    this.sim = new BattleSimulator(registry);
+    this.sim = new BattleSimulator(registry, (itemId) => {
+      const item = this.items.find((candidate) => candidate.itemId === itemId && candidate.count > 0);
+      return item ? { effect: item.effect, range: item.range } : undefined;
+    });
     this.ai = new EnemyAI(registry, this.sim);
   }
 
@@ -130,7 +134,7 @@ export class BattleSession {
     this.items = (this.hooks.battleItems ?? []).map((it) => ({ ...it }));
     this.state = this.hooks.buildState ? this.hooks.buildState(level) : loadLevel(level, this.registry);
     this.host.setupLevel(level, this.state);
-    this.clearSel();
+    this.resetInteraction();
     this.busy = false;
     this.endNotified = false;
     this.host.clearLog();
@@ -143,13 +147,19 @@ export class BattleSession {
     this.load(this.level);
   }
 
-  private clearSel(): void {
+  /** 退出技能/道具瞄准，但保留暂定移动与菜单状态。 */
+  private clearAim(): void {
     this.activeSkill = null;
     this.activeItem = null;
     this.pending = null;
+    this.aimLocked = false;
+  }
+
+  /** 完整复位当前交互；用于加载、推进回合及提交行动。 */
+  private resetInteraction(): void {
+    this.clearAim();
     this.preMove = null;
     this.menuOpen = false;
-    this.aimLocked = false;
   }
 
   /** 当前正在瞄准（技能或道具）。 */
@@ -265,10 +275,8 @@ export class BattleSession {
     const active = this.active();
     if (!active || active.actedThisTurn) return;
     if ((active.cooldowns[skillId] ?? 0) > 0) return;
+    this.clearAim();
     this.activeSkill = skillId;
-    this.activeItem = null;
-    this.pending = null;
-    this.aimLocked = false;
     this.render();
   }
 
@@ -278,8 +286,8 @@ export class BattleSession {
     if (!active || active.actedThisTurn) return;
     const item = this.items.find((i) => i.itemId === itemId);
     if (!item || item.count <= 0) return;
+    this.clearAim();
     this.activeItem = itemId;
-    this.activeSkill = null;
     // 默认目标为自身（总在射程内），确认条立即可用；点友军可改目标。射程 0 直接锁定。
     this.pending = { unitId: active.instanceId, cell: active.pos };
     this.aimLocked = item.range === 0 && this.canReleasePending();
@@ -308,11 +316,7 @@ export class BattleSession {
       direction: this.pending.direction,
     };
     // 提交：清掉瞄准与暂定移动，先同步刷新 HUD（确认条收起），再呈现事件。
-    this.preMove = null;
-    this.activeSkill = null;
-    this.pending = null;
-    this.aimLocked = false;
-    this.menuOpen = false;
+    this.resetInteraction();
     await this.exec(action, "skill");
     await this.afterPlayerAction();
   }
@@ -329,13 +333,8 @@ export class BattleSession {
       actorId: active.instanceId,
       targetUnitId: this.pending.unitId,
       itemId: item.itemId,
-      effect: item.effect,
     };
-    this.preMove = null;
-    this.activeItem = null;
-    this.pending = null;
-    this.aimLocked = false;
-    this.menuOpen = false;
+    this.resetInteraction();
     const applied = await this.exec(action, "skill");
     if (applied) {
       item.count -= 1;
@@ -348,10 +347,7 @@ export class BattleSession {
   /** 取消（右键/取消按钮）：瞄准中退出瞄准；否则收起行动菜单。 */
   cancel(): void {
     if (this.aiming()) {
-      this.activeSkill = null;
-      this.activeItem = null;
-      this.pending = null;
-      this.aimLocked = false;
+      this.clearAim();
       this.render();
       return;
     }
@@ -372,12 +368,7 @@ export class BattleSession {
   private async doRest(active: Unit): Promise<void> {
     const healed = Math.min(restHealAmount(active.maxHp), active.maxHp - active.hp);
     // 调息提交暂定移动并清空瞄准（与释放技能一致）。
-    this.preMove = null;
-    this.activeSkill = null;
-    this.activeItem = null;
-    this.pending = null;
-    this.aimLocked = false;
-    this.menuOpen = false;
+    this.resetInteraction();
     this.log(`🧘 ${active.name} 调息，恢复 ${healed} 点生命`);
     await this.exec({ type: "rest", actorId: active.instanceId }, "skill");
     await this.afterPlayerAction();
@@ -522,7 +513,7 @@ export class BattleSession {
 
   /** 推进初动到下一个行动单位。 */
   private async advanceTurn(): Promise<void> {
-    this.clearSel();
+    this.resetInteraction();
     const res = this.sim.simulate(this.state, { type: "end_turn" });
     this.state = res.nextState;
     this.logEvents(res.events);
@@ -545,10 +536,7 @@ export class BattleSession {
           continue;
         }
         this.busy = false;
-        this.activeSkill = null;
-        this.activeItem = null;
-        this.pending = null;
-        this.preMove = null;
+        this.resetInteraction();
         this.menuOpen = !this.canMove(active); // 无法移动则直接展开技能菜单
         this.render();
         return; // 等待玩家输入
@@ -636,14 +624,16 @@ export class BattleSession {
   private buildViewModel(): ViewModel {
     const active = this.active();
     const myTurn = this.isPlayerTurn();
-    const overlay = this.buildOverlay(active, myTurn);
+    // 同一帧只模拟一次技能预览；Overlay 与确认栏消费同一结果，避免重复深克隆整场状态。
+    const skillPreview = this.currentSkillPreview(active, myTurn);
+    const overlay = this.buildOverlay(active, myTurn, skillPreview);
     const menu = this.buildMenu(active, myTurn);
     return {
       state: this.state,
       overlay,
       menu,
       items: this.buildItemMenu(active, menu.visible),
-      confirm: this.buildConfirm(active, myTurn),
+      confirm: this.buildConfirm(active, myTurn, skillPreview),
       turnText: this.buildTurnText(),
       hint: this.level ? `🎯 ${this.level.name}：${this.level.teach ?? ""}` : "",
       info: this.buildInfo(),
@@ -652,7 +642,12 @@ export class BattleSession {
     };
   }
 
-  private buildOverlay(active: Unit | undefined, myTurn: boolean): OverlayVM {
+  private currentSkillPreview(active: Unit | undefined, myTurn: boolean): SkillPreview | null {
+    if (!myTurn || !active || !this.activeSkill || !this.pending) return null;
+    return previewSkill(this.state, this.sim, this.registry, active.instanceId, this.activeSkill, this.pending);
+  }
+
+  private buildOverlay(active: Unit | undefined, myTurn: boolean, skillPreview: SkillPreview | null): OverlayVM {
     const overlay: OverlayVM = { hoverCell: this.hover ?? undefined };
     if (active) overlay.selectedUnitId = active.instanceId;
     if (!active || !myTurn) {
@@ -673,7 +668,7 @@ export class BattleSession {
       }
     } else if (this.activeSkill) {
       overlay.castCells = getCastableCells(this.state, active, this.registry.skill(this.activeSkill));
-      this.applyPreview(overlay);
+      this.applyPreview(overlay, skillPreview);
     } else if (this.canMove(active)) {
       overlay.moveCells = computeMoveRange(this.moveBase(active), active.instanceId);
     }
@@ -686,10 +681,8 @@ export class BattleSession {
     return overlay;
   }
 
-  private applyPreview(overlay: OverlayVM): void {
-    const active = this.active();
-    if (!active || !this.activeSkill || !this.pending) return;
-    const preview = previewSkill(this.state, this.sim, this.registry, active.instanceId, this.activeSkill, this.pending);
+  private applyPreview(overlay: OverlayVM, preview: SkillPreview | null): void {
+    if (!preview) return;
     if (!preview.ok) return;
 
     overlay.hitCenter = preview.hitCells.filter((c) => c.effectKey === "center").map((c) => c.pos);
@@ -745,7 +738,6 @@ export class BattleSession {
       actorId: active.instanceId,
       targetUnitId: this.pending.unitId,
       itemId: item.itemId,
-      effect: item.effect,
     });
     if (!res.ok) return;
     const labels: NonNullable<OverlayVM["damage"]> = [];
@@ -821,7 +813,7 @@ export class BattleSession {
     return text.length > 16 ? `${text.slice(0, 15)}…` : text;
   }
 
-  private buildConfirm(active: Unit | undefined, myTurn: boolean): ConfirmVM {
+  private buildConfirm(active: Unit | undefined, myTurn: boolean, preview: SkillPreview | null): ConfirmVM {
     if (myTurn && active && this.activeItem) {
       const item = this.activeItemDef();
       if (!item) return { visible: false, skillName: "", desc: "", canRelease: false };
@@ -837,9 +829,8 @@ export class BattleSession {
     let effect = false;
     let desc: string;
     if (can) {
-      const preview = previewSkill(this.state, this.sim, this.registry, active.instanceId, this.activeSkill, this.pending);
-      effect = this.hasEffect(preview.events);
-      const lines = describePreview(this.state, preview.events).filter((l) => !l.includes("施放"));
+      effect = !!preview?.ok && this.hasEffect(preview.events);
+      const lines = describePreview(this.state, preview?.events ?? []).filter((l) => !l.includes("施放"));
       desc = effect ? lines.join("　·　") : "未命中有效目标，无法释放";
     } else {
       desc = this.pendingOutOfRange(active, skill) ? "超出施法范围" : "无法在此处施放";

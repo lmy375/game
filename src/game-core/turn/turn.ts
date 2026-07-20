@@ -13,6 +13,22 @@ import { dealDamage, processDeaths } from "../skill/combat";
 export const CT_THRESHOLD = 100;
 const BURN_DEFAULT_DAMAGE = 10;
 
+interface InitiativeCandidate {
+  id: string;
+  ct: number;
+  speed: number;
+}
+
+/**
+ * CT 候选的权威排序规则。真实推进与 UI 预测必须共用，避免平局时显示顺序与实际顺序不同。
+ */
+function compareInitiative(a: InitiativeCandidate, b: InitiativeCandidate): number {
+  if (b.ct !== a.ct) return b.ct - a.ct;
+  if (b.speed !== a.speed) return b.speed - a.speed;
+  if (a.id === b.id) return 0;
+  return a.id < b.id ? -1 : 1;
+}
+
 /** 在不修改 state 的前提下，挑选下一个达到行动阈值的单位（推进 ct）。返回单位 id 或 null。 */
 function tickUntilReady(state: BattleState): string | null {
   const alive = livingUnits(state);
@@ -27,11 +43,12 @@ function tickUntilReady(state: BattleState): string | null {
   }
 
   // 多个达标时，ct 最高者先动；平局按 speed、再按 instanceId 保证确定性
-  const candidates = ready().sort((a, b) => {
-    if (b.ct !== a.ct) return b.ct - a.ct;
-    if (b.stats.speed !== a.stats.speed) return b.stats.speed - a.stats.speed;
-    return a.instanceId < b.instanceId ? -1 : 1;
-  });
+  const candidates = ready().sort((a, b) =>
+    compareInitiative(
+      { id: a.instanceId, ct: a.ct, speed: a.stats.speed },
+      { id: b.instanceId, ct: b.ct, speed: b.stats.speed }
+    )
+  );
   return candidates[0]?.instanceId ?? null;
 }
 
@@ -81,19 +98,31 @@ export function advanceInitiative(state: BattleState, events: BattleEvent[]): vo
   if (current) current.ct -= CT_THRESHOLD;
   state.activeUnitId = null;
 
-  const nextId = tickUntilReady(state);
-  if (!nextId) return;
-  const next = state.units.find((u) => u.instanceId === nextId)!;
-  startUnitTurn(state, next, events);
+  startNextLivingTurn(state, events);
 }
 
 /** 初始化战斗的首个行动单位（关卡加载时调用）。 */
 export function initInitiative(state: BattleState): void {
   const events: BattleEvent[] = [];
-  const nextId = tickUntilReady(state);
-  if (!nextId) return;
-  const next = state.units.find((u) => u.instanceId === nextId)!;
-  startUnitTurn(state, next, events);
+  startNextLivingTurn(state, events);
+}
+
+/**
+ * 选择并开始下一个行动。回合开始的持续伤害可能立即击杀候选单位；此时继续选择，
+ * 绝不能把 activeUnitId 留在死亡单位上，否则玩家交互会进入无法操作的尸体回合。
+ */
+function startNextLivingTurn(state: BattleState, events: BattleEvent[]): void {
+  while (true) {
+    const nextId = tickUntilReady(state);
+    if (!nextId) {
+      state.activeUnitId = null;
+      return;
+    }
+    const next = state.units.find((u) => u.instanceId === nextId)!;
+    startUnitTurn(state, next, events);
+    if (next.hp > 0) return;
+    state.activeUnitId = null;
+  }
 }
 
 /**
@@ -123,7 +152,7 @@ export function predictTurnOrder(state: BattleState, n: number): string[] {
     }
     const ready = sim
       .filter((u) => u.ct >= CT_THRESHOLD)
-      .sort((a, b) => (b.ct !== a.ct ? b.ct - a.ct : b.speed - a.speed));
+      .sort(compareInitiative);
     const pick = ready[0];
     order.push(pick.id);
     pick.ct -= CT_THRESHOLD;

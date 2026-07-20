@@ -6,6 +6,7 @@ import { MetaTables, SaveData, SAVE_VERSION, SKILL_SLOT_COUNT, ItemDef, ItemTabl
 import itemsRaw from "./items.json";
 import levelRewardsRaw from "./levelRewards.json";
 import storyRaw from "./story.json";
+import { validateGameData } from "./validateGameData";
 
 // JSON 字面量会被推断得过宽（string / number[]），断言为强类型（结构由测试保证）。
 const itemList = itemsRaw as unknown as ItemDef[];
@@ -13,6 +14,7 @@ const levelRewards = levelRewardsRaw as unknown as RewardTable;
 const story = storyRaw as unknown as StoryGraph;
 
 export function loadMetaTables(): MetaTables {
+  validateGameData();
   const items: ItemTable = {};
   for (const it of itemList) items[it.id] = it;
   return { items, levelRewards, story };

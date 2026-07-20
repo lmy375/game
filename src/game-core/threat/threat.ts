@@ -2,18 +2,16 @@
  * 威胁范围计算（danger zone）：某一阵营全体单位「可达格 ∪ 从可达站位能命中的格」。
  * 供 UI 在玩家走位时渲染敌方威胁区。纯函数，不修改 state。
  *
- * 攻击覆盖不使用 getCastableCells（它对 direction 型只返回代表格、对 distance 型返回施法点
- * 而非命中格），而是镜像 resolveTargeting 的语义，把每个技能展开为「相对施法者的可命中偏移集」。
+ * 攻击覆盖不使用 getCastableCells（它返回施法点而非命中格），而是从虚拟原点枚举目标，
+ * 再复用实际结算的 resolveTargeting，把每个技能展开为「相对施法者的可命中偏移集」。
  */
 import {
   Position,
   Direction,
   ALL_DIRECTIONS,
-  DIRECTION_VECTOR,
   add,
   key,
   clone,
-  directionTo,
 } from "../board/geometry";
 import { BattleState } from "../state/BattleState";
 import { Unit, Faction, isAlive } from "../unit/Unit";
@@ -21,6 +19,7 @@ import { SkillDef } from "../skill/Skill";
 import { resolvePattern } from "../pattern/Pattern";
 import { ContentRegistry } from "../content/Registry";
 import { computeMoveRange } from "../pathfinding/pathfinding";
+import { resolveTargeting } from "../skill/resolveSkill";
 
 export interface ThreatCells {
   /** 该阵营全体存活单位的 当前格 ∪ 可达格。 */
@@ -31,10 +30,11 @@ export interface ThreatCells {
 
 /** 偏移集缓存：SkillDef 静态不变，按定义对象缓存展开结果。 */
 const offsetsCache = new WeakMap<SkillDef, Position[]>();
+const ORIGIN: Position = { x: 0, y: 0 };
 
 /**
  * 一个技能相对施法者(0,0)的可命中偏移全集（去重）。
- * 与实际结算同源：枚举 castRange 的全部目标点，逐个走 resolveTargeting 同款的
+ * 与实际结算同源：枚举 castRange 的全部目标点，逐个走 resolveTargeting 的
  * 方向/原点推导，再用 resolvePattern 展开。施法者朝向不可预测的分支（自身格目标
  * 且 pattern 可旋转）取四方向并集，宁可高估不低估。
  *
@@ -52,18 +52,15 @@ export function skillThreatOffsets(skill: SkillDef, registry: ContentRegistry): 
       out.set(key(c.pos), c.pos);
     }
   };
-  // 目标点 target 相对施法者的偏移；origin 与 resolveTargeting 一致：
-  // anchor=caster_direction → 施法者格(0,0)，否则目标格本身。
-  const originOf = (target: Position) => (pattern.anchor === "caster_direction" ? { x: 0, y: 0 } : target);
 
   switch (skill.castRange.type) {
     case "direction":
       for (const dir of ALL_DIRECTIONS) {
-        collect(originOf(DIRECTION_VECTOR[dir]), dir);
+        collectTarget({ direction: dir }, "up");
       }
       break;
     case "self":
-      collectForTarget({ x: 0, y: 0 });
+      collectCellTarget(ORIGIN);
       break;
     case "distance": {
       const { min, max } = skill.castRange;
@@ -71,22 +68,25 @@ export function skillThreatOffsets(skill: SkillDef, registry: ContentRegistry): 
         for (let dy = -max; dy <= max; dy++) {
           const d = Math.abs(dx) + Math.abs(dy);
           if (d < min || d > max) continue;
-          collectForTarget({ x: dx, y: dy });
+          collectCellTarget({ x: dx, y: dy });
         }
       }
       break;
     }
   }
 
-  function collectForTarget(target: Position): void {
-    if (!pattern.rotatable) {
-      collect(originOf(target), "up");
-    } else if (target.x === 0 && target.y === 0) {
+  function collectCellTarget(target: Position): void {
+    if (pattern.rotatable && target.x === 0 && target.y === 0) {
       // 目标为自身格时方向取决于施法瞬间的 facing，不可预测 → 四方向并集。
-      for (const dir of ALL_DIRECTIONS) collect(originOf(target), dir);
+      for (const facing of ALL_DIRECTIONS) collectTarget({ cell: target }, facing);
     } else {
-      collect(originOf(target), directionTo({ x: 0, y: 0 }, target));
+      collectTarget({ cell: target }, "up");
     }
+  }
+
+  function collectTarget(target: { cell?: Position; direction?: Direction }, facing: Direction): void {
+    const targeting = resolveTargeting({ pos: ORIGIN, facing }, skill, pattern, target);
+    collect(targeting.origin, targeting.dir);
   }
 
   const offsets = [...out.values()];

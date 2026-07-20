@@ -12,6 +12,7 @@ import {
   evaluateForEnemy,
   BattleAction,
   restHealAmount,
+  predictTurnOrder,
 } from "@core/index";
 import { createRegistry, getLevel } from "@data/index";
 import { castFirstDamagingSkill, makeState, makeUnit } from "./helpers";
@@ -172,6 +173,34 @@ describe("回合与状态", () => {
     const res = sim.simulate(state, { type: "end_turn" });
     expect(res.nextState.turn).toBe("enemy");
     expect(unitById(res.nextState, enemy.instanceId)!.hp).toBe(90); // 燃烧 10
+  });
+
+  it("回合开始燃烧致死时自动跳到下一个存活单位", () => {
+    const current = makeUnit("enemy", { x: 4, y: 4 }, { instanceId: "current", ct: 100 });
+    const doomed = makeUnit("player", { x: 0, y: 0 }, {
+      instanceId: "doomed",
+      hp: 5,
+      ct: 100,
+      statuses: [{ id: "burn", duration: 2, magnitude: 10 }],
+    });
+    const survivor = makeUnit("player", { x: 1, y: 0 }, { instanceId: "survivor", ct: 100 });
+    const state = makeState(9, 9, [current, doomed, survivor]);
+    const res = new BattleSimulator(registry).simulate(state, { type: "end_turn" });
+
+    expect(unitById(res.nextState, "doomed")!.hp).toBe(0);
+    expect(res.nextState.activeUnitId).toBe("survivor");
+    expect(res.events.some((e) => e.type === "unit_died" && e.unitId === "doomed")).toBe(true);
+  });
+
+  it("行动顺序预测与真实推进在完全平局时使用同一 instanceId 规则", () => {
+    const current = makeUnit("player", { x: 0, y: 0 }, { instanceId: "current", ct: 100 });
+    const laterInArray = makeUnit("enemy", { x: 3, y: 0 }, { instanceId: "z-unit", ct: 100 });
+    const lexicalFirst = makeUnit("enemy", { x: 2, y: 0 }, { instanceId: "a-unit", ct: 100 });
+    const state = makeState(5, 5, [current, laterInArray, lexicalFirst]);
+
+    expect(predictTurnOrder(state, 2)[1]).toBe("a-unit");
+    const res = new BattleSimulator(registry).simulate(state, { type: "end_turn" });
+    expect(res.nextState.activeUnitId).toBe("a-unit");
   });
 });
 

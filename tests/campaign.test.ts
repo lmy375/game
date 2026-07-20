@@ -141,6 +141,21 @@ describe("CampaignDirector 流程编排", () => {
     expect(host.cutscene!.nodeId).toBe("n_cut_2");
   });
 
+  it("同一场战斗的结束回调重复触发时不会重复发放奖励", () => {
+    director.boot();
+    director.newGame();
+    for (let i = 0; i < 6; i++) director.advanceCutscene();
+    const { state, hooks } = host.battle!;
+    for (const u of state.units) if (u.faction === "enemy") u.hp = 0;
+    state.outcome = "player_win";
+
+    hooks.onEnd("player_win", state);
+    const inventoryAfterFirst = [...director.getProfile().inventory];
+    hooks.onEnd("player_win", state);
+
+    expect(director.getProfile().inventory).toEqual(inventoryAfterFirst);
+  });
+
   it("第二场战斗：第一关掉落的秘卷已自动装备，风术士带横向推击入场", () => {
     director.boot();
     director.newGame();
