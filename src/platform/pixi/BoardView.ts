@@ -1,4 +1,4 @@
-import { Container, Graphics, Matrix, Sprite, Texture } from "pixi.js";
+import { Container, Graphics, Sprite } from "pixi.js";
 import { BattleState, GridBoard, Position, TerrainType } from "@core/index";
 import { Grid } from "./Grid";
 import { terrainTextureUrls } from "./AssetManifest";
@@ -11,9 +11,6 @@ const DECOR_COLOR: Partial<Record<TerrainType, number>> = {
 const GLOW: Partial<Record<TerrainType, number>> = { fire: 0xff6a2a, trap: 0x9a4ad9 };
 /** 额外抬升高度:墙/障碍作为立方块凸出于地面。 */
 const RAISE: Partial<Record<TerrainType, number>> = { wall: 30, obstacle: 22 };
-/** 悬崖岩层配色(上层受光、下层背光),左侧面整体再调暗与旧版光向一致。 */
-const CLIFF_UPPER = 0x4a4440;
-const CLIFF_LOWER = 0x2c2724;
 const key = (p: Position) => `${p.x},${p.y}`;
 
 /** 按比例调暗颜色,用于侧面阴影。 */
@@ -25,8 +22,9 @@ function shade(color: number, k: number): number {
 }
 
 /**
- * 2.5D 不规则大陆棋盘:所有非 void 格合并渲染成一整块悬浮地台——
- * 底部投影 → 悬崖侧壁(只在邻接 void/边界的暴露面) → 连续贴图顶面(无格线) → 轮廓棱线高光。
+ * 2.5D 不规则大陆棋盘:所有非 void 格合并渲染成一整块平贴地面的地台——
+ * 贴地接触阴影 → 半透明顶面色罩(无纹理,背景图透出) → 轮廓棱线高光。
+ * 地台与背景地面平齐,不做抬升侧壁,视觉上融入背景图。
  * wall/obstacle/fire/trap 作为装饰层叠加在大陆之上,按深度排序。
  * 格子本身不可见,移动/瞄准高亮由 OverlayView 负责。
  */
@@ -54,88 +52,68 @@ export class BoardView {
     return this.board.terrainAt(p) === "void"; // 越界也返回 void
   }
 
-  /** 大陆主体:1 个投影 + 1 个悬崖 + 1 个顶面 + 1 个轮廓,共 4 个 Graphics。 */
-  private buildContinent(): void {
+  /** 大陆暴露边(邻接 void/边界)线段集,阴影圈与轮廓棱线共用。 */
+  private exposedEdges(land: Position[]): Array<[{ x: number; y: number }, { x: number; y: number }]> {
     const g = this.grid;
     const hw = g.halfW;
     const hh = g.halfH;
-    const T = g.thickness;
-    const land: Position[] = [];
-    this.board.forEachTile((p, terrain) => {
-      if (terrain !== "void") land.push(p);
-    });
-
-    // 1) 底部投影:整体下移、略外扩;内部重叠区域被地台自身遮住,只露出边缘一圈。
-    const shadow = new Graphics();
-    for (const p of land) {
-      const c = g.center(p);
-      const s = 1.12;
-      shadow.poly([c.x, c.y + T + 10 - hh * s, c.x + hw * s, c.y + T + 10, c.x, c.y + T + 10 + hh * s, c.x - hw * s, c.y + T + 10]);
-    }
-    shadow.fill({ color: 0x000000, alpha: 0.34 });
-
-    // 2) 悬崖侧壁:只画邻接 void/边界的暴露面。上亮下暗两段岩层,左右侧面受光不同。
-    const cliff = new Graphics();
-    const upperH = Math.round(T * 0.45);
-    for (const p of land) {
-      const c = g.center(p);
-      // 左下侧面(邻居 y-1 是空气)
-      if (this.isVoidAt({ x: p.x, y: p.y - 1 })) {
-        const a = { x: c.x - hw, y: c.y }; // left 角
-        const b = { x: c.x, y: c.y + hh }; // bottom 角
-        cliff.poly([a.x, a.y, b.x, b.y, b.x, b.y + upperH, a.x, a.y + upperH]).fill({ color: shade(CLIFF_UPPER, 0.72) });
-        cliff.poly([a.x, a.y + upperH, b.x, b.y + upperH, b.x, b.y + T, a.x, a.y + T]).fill({ color: shade(CLIFF_LOWER, 0.72) });
-      }
-      // 右下侧面(邻居 x+1 是空气)
-      if (this.isVoidAt({ x: p.x + 1, y: p.y })) {
-        const a = { x: c.x, y: c.y + hh }; // bottom 角
-        const b = { x: c.x + hw, y: c.y }; // right 角
-        cliff.poly([a.x, a.y, b.x, b.y, b.x, b.y + upperH, a.x, a.y + upperH]).fill({ color: CLIFF_UPPER });
-        cliff.poly([a.x, a.y + upperH, b.x, b.y + upperH, b.x, b.y + T, a.x, a.y + T]).fill({ color: CLIFF_LOWER });
-      }
-    }
-
-    // 3) 连续顶面:全部陆地菱形一次填充。统一的纹理矩阵把贴图基向量对齐到等距格步进,
-    //    使纹理跨格连续、无格线;菱形略外扩消除子路径间的抗锯齿细缝(重叠处采样一致,不可见)。
-    const top = new Graphics();
-    const tex = Texture.from(terrainTextureUrls.ground);
-    tex.source.addressMode = "repeat";
-    const texSize = tex.width || 144;
-    const origin = g.center({ x: 0, y: 0 });
-    // 一张纹理跨约 2.4 格(非整数,避免纹理重复周期与格步进对齐后拼出"格线"感)。
-    const SPAN = 2.4;
-    const k = (SPAN * hw) / texSize;
-    const kv = (SPAN * hh) / texSize;
-    const matrix = new Matrix(k, kv, -k, kv, origin.x, origin.y - hh);
-    const s = 1.03;
-    for (const p of land) {
-      const c = g.center(p);
-      top.poly([c.x, c.y - hh * s, c.x + hw * s, c.y, c.x, c.y + hh * s, c.x - hw * s, c.y]);
-    }
-    top.fill({ texture: tex, matrix, color: 0xb8b4ae }); // 乘色压暗,贴近战场氛围
-    // 顶面整体罩一层极淡的冷色,统一色调
-    for (const p of land) {
-      const c = g.center(p);
-      top.poly([c.x, c.y - hh * s, c.x + hw * s, c.y, c.x, c.y + hh * s, c.x - hw * s, c.y]);
-    }
-    top.fill({ color: 0x2a3140, alpha: 0.18 });
-
-    // 4) 轮廓棱线:只勾大陆暴露边,不画内部格线。
-    const rim = new Graphics();
+    const edges: Array<[{ x: number; y: number }, { x: number; y: number }]> = [];
     for (const p of land) {
       const c = g.center(p);
       const top4 = { x: c.x, y: c.y - hh };
       const right4 = { x: c.x + hw, y: c.y };
       const bottom4 = { x: c.x, y: c.y + hh };
       const left4 = { x: c.x - hw, y: c.y };
-      if (this.isVoidAt({ x: p.x - 1, y: p.y })) rim.moveTo(left4.x, left4.y).lineTo(top4.x, top4.y);
-      if (this.isVoidAt({ x: p.x, y: p.y + 1 })) rim.moveTo(top4.x, top4.y).lineTo(right4.x, right4.y);
-      if (this.isVoidAt({ x: p.x + 1, y: p.y })) rim.moveTo(right4.x, right4.y).lineTo(bottom4.x, bottom4.y);
-      if (this.isVoidAt({ x: p.x, y: p.y - 1 })) rim.moveTo(bottom4.x, bottom4.y).lineTo(left4.x, left4.y);
+      if (this.isVoidAt({ x: p.x - 1, y: p.y })) edges.push([left4, top4]);
+      if (this.isVoidAt({ x: p.x, y: p.y + 1 })) edges.push([top4, right4]);
+      if (this.isVoidAt({ x: p.x + 1, y: p.y })) edges.push([right4, bottom4]);
+      if (this.isVoidAt({ x: p.x, y: p.y - 1 })) edges.push([bottom4, left4]);
     }
-    rim.stroke({ width: 1.5, color: 0xd8cfc0, alpha: 0.28 });
+    return edges;
+  }
 
-    this.layer.addChild(shadow, cliff, top, rim);
+  /**
+   * 大陆主体:接触阴影 + 顶面 + 轮廓,合并在一个容器内按不透明绘制,
+   * cacheAsTexture 压平成单张纹理后整体降透明度,让背景图透出。
+   * 半透明几何直接叠加会在子路径重叠处双重混合出深色接缝;压平后只在
+   * 不透明像素间遮挡,不产生接缝,整体透明度也只作用一次。
+   */
+  private buildContinent(): void {
+    const g = this.grid;
+    const hw = g.halfW;
+    const hh = g.halfH;
+    const land: Position[] = [];
+    this.board.forEachTile((p, terrain) => {
+      if (terrain !== "void") land.push(p);
+    });
+    const edges = this.exposedEdges(land);
+
+    // 1) 贴地接触阴影:沿暴露边描粗黑线,外侧一半露在顶面之外形成阴影圈,
+    //    内侧一半被不透明顶面盖住,把地台"坐"进背景地面。
+    const shadow = new Graphics();
+    for (const [a, b] of edges) shadow.moveTo(a.x, a.y).lineTo(b.x, b.y);
+    shadow.stroke({ width: 16, color: 0x000000, cap: "round", join: "round" });
+
+    // 2) 连续顶面:全部陆地菱形一次填充,不做纹理,只留一层色罩;
+    //    菱形略外扩消除子路径间的抗锯齿细缝(不透明下重叠不可见)。
+    const top = new Graphics();
+    const s = 1.03;
+    for (const p of land) {
+      const c = g.center(p);
+      top.poly([c.x, c.y - hh * s, c.x + hw * s, c.y, c.x, c.y + hh * s, c.x - hw * s, c.y]);
+    }
+    top.fill({ color: 0x141a26 });
+
+    // 3) 轮廓棱线:只勾大陆暴露边,不画内部格线。
+    const rim = new Graphics();
+    for (const [a, b] of edges) rim.moveTo(a.x, a.y).lineTo(b.x, b.y);
+    rim.stroke({ width: 1.5, color: 0xd8cfc0 });
+
+    const continent = new Container();
+    continent.addChild(shadow, top, rim);
+    continent.cacheAsTexture({ antialias: true });
+    continent.alpha = 0.35;
+    this.layer.addChild(continent);
   }
 
   /** 单格装饰:wall/obstacle 凸起立方块,fire/trap 贴花 + 辉光。ground/void 无装饰。 */
