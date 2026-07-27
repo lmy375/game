@@ -15,6 +15,8 @@ const STATUS: Record<string, { ch: string; color: string }> = {
 class UnitSprite {
   container = new Container();
   readonly maxHp: number;
+  /** 基础缩放(棋盘缩小时的可读性补偿),所有临时缩放动画必须以此为基准叠加。 */
+  readonly baseScale: number;
   private readonly factionColor: number;
   private sprite: Sprite;
   private hp = new Graphics();
@@ -25,6 +27,7 @@ class UnitSprite {
   constructor(unit: Unit, center: { x: number; y: number }, comp = 1) {
     this.maxHp = unit.maxHp;
     this.factionColor = FACTION[unit.faction] ?? FACTION.enemy;
+    this.baseScale = comp;
     this.container.position.set(center.x, center.y);
     this.container.scale.set(comp); // 大棋盘整体缩小后,放大立绘/血条保证屏显可读
     this.sprite = Sprite.from(unitSpriteUrls[unit.defId as keyof typeof unitSpriteUrls] ?? unitSpriteUrls.enemy_soldier);

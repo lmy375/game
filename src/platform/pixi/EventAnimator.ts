@@ -110,9 +110,11 @@ export class EventAnimator {
   private punch(id: string, scale: number): void {
     const s = this.units.get(id);
     if (!s) return;
+    // 弹缩必须叠加在基础缩放上,结束后精确还原,否则大棋盘上单位受击后会永久变小
+    const base = s.baseScale;
     void this.anim
-      .animate(0.08, (t) => s.container.scale.set(1 + (scale - 1) * t))
-      .then(() => this.anim.animate(0.08, (t) => s.container.scale.set(scale + (1 - scale) * t)));
+      .animate(0.08, (t) => s.container.scale.set(base * (1 + (scale - 1) * t)))
+      .then(() => this.anim.animate(0.08, (t) => s.container.scale.set(base * (scale + (1 - scale) * t))));
   }
 
   private async terrain(p: Position, terrain: TerrainType): Promise<void> {
@@ -130,7 +132,7 @@ export class EventAnimator {
     this.fx.burst(s.container.x, s.container.y, 0x88909e, 14, 56);
     await this.anim.animate(0.3, (t) => {
       s.container.alpha = 1 - t;
-      s.container.scale.set(1 - t * 0.6);
+      s.container.scale.set(s.baseScale * (1 - t * 0.6));
     });
   }
 }
