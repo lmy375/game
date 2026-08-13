@@ -45,7 +45,7 @@ describe("移动范围与寻路", () => {
 });
 
 describe("十字火焰：聚怪后 AOE", () => {
-  it("中心格高伤 + 燃烧，四周格低伤", () => {
+  it("中心格略高伤，全部命中格燃烧", () => {
     const caster = makeUnit("player", { x: 0, y: 4 }, { skills: ["cross_fire"], stats: { hp: 100, attack: 10, magic: 100, defense: 0, moveRange: 3 } });
     const center = makeUnit("enemy", { x: 4, y: 4 }, { defId: "enemy_soldier", stats: { hp: 200, attack: 0, magic: 0, defense: 0, moveRange: 0 } });
     const arm = makeUnit("enemy", { x: 5, y: 4 }, { defId: "enemy_soldier", stats: { hp: 200, attack: 0, magic: 0, defense: 0, moveRange: 0 } });
@@ -56,9 +56,12 @@ describe("十字火焰：聚怪后 AOE", () => {
     expect(res.ok).toBe(true);
     const c2 = unitById(res.nextState, center.instanceId)!;
     const a2 = unitById(res.nextState, arm.instanceId)!;
-    expect(200 - c2.hp).toBe(150); // 100*1.5
-    expect(200 - a2.hp).toBe(80); // 100*0.8
+    expect(200 - c2.hp).toBe(120); // 100*1.2
+    expect(200 - a2.hp).toBe(90); // 100*0.9
     expect(c2.statuses.some((s) => s.id === "burn")).toBe(true);
+    expect(a2.statuses.some((s) => s.id === "burn")).toBe(true);
+    // AOE 收益不变式：打中 2 个边缘格必须优于打中 1 个中心格。
+    expect(2 * (200 - a2.hp)).toBeGreaterThan(200 - c2.hp);
   });
 });
 

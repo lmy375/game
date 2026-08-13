@@ -320,7 +320,7 @@
     "rarity": "blue",
     "skillId": "cross_fire",
     "usableBy": ["fire_mage"],
-    "description": "习得「十字火焰」：十字范围火焰爆发。"
+    "description": "习得「十字火焰」：十字范围火焰爆发+全域燃烧。"
   },
   {
     "id": "tome_flame_wall",

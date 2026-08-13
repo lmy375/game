@@ -160,7 +160,103 @@ export function collectGameDataIssues(data: GameDataValidationInput): GameDataIs
   validateLevels(data.levels, unitIds, data.units, add);
   validateRewards(data.levelRewards, levelIds, itemIds, add);
   validateStory(data.story, levelIds, add);
+  validateAoeIncentive(data, add);
   return issues;
+}
+
+/**
+ * AOE 收益不变式：用 AOE 同时命中多个敌人是本作核心玩法来源（见 CLAUDE.md 与 PRD §6.1）。
+ * 对任何伤害分档的 AOE 技能，「打中 2 个最低档格」必须明显优于「打中 1 个最高档格」，
+ * 否则玩家的最优解退化为拿 AOE 点射单体，违背聚敌成杀的设计目标。三条规则：
+ * 1) 倍率：2 × 最低档伤害倍率 ≥ 1.2 × 最高档伤害倍率；
+ * 2) 状态一致：各伤害档位附带的状态效果必须完全相同，防止独占状态抵消倍率约束；
+ * 3) 实战：对每个持有该技能的单位，按 computeDamage 公式（攻/法 × 倍率 − 防御，
+ *    四舍五入、下限 1）以敌对阵营防御中位数验算，2 × 最低档 > 1 × 最高档。
+ */
+function validateAoeIncentive(data: GameDataValidationInput, add: AddIssue): void {
+  const ownersBySkill = new Map<string, Set<UnitDef>>();
+  const unitById = new Map(data.units.map((u) => [u.id, u]));
+  const own = (skillId: string, unit: UnitDef | undefined) => {
+    if (!unit) return;
+    const set = ownersBySkill.get(skillId) ?? new Set<UnitDef>();
+    set.add(unit);
+    ownersBySkill.set(skillId, set);
+  };
+  for (const unit of data.units) for (const skillId of unit.skills ?? []) own(skillId, unit);
+  for (const item of data.items) {
+    if (item.kind === "skill" && item.skillId) for (const unitId of item.usableBy ?? []) own(item.skillId, unitById.get(unitId));
+  }
+  const medianDefense = (faction: "player" | "enemy"): number | null => {
+    const values = data.units
+      .filter((u) => u.faction === faction)
+      .map((u) => u.stats?.defense)
+      .filter((v): v is number => Number.isFinite(v))
+      .sort((a, b) => a - b);
+    return values.length ? values[Math.floor(values.length / 2)] : null;
+  };
+
+  for (const [index, skill] of data.skills.entries()) {
+    const path = `skills[${index}](${skill.id || "?"})`;
+    const allOps = skill.cellEffects?.["all"] ?? [];
+    // 伤害档位：pattern 中每个 effectKey 结算 keyOps + allOps（与 resolveSkill 一致），只比较含伤害的档位。
+    const zones = Object.entries(skill.cellEffects ?? {})
+      .filter(([key]) => key !== "all")
+      .map(([key, ops]) => ({ key, ops: [...(ops ?? []), ...allOps] }))
+      .map((zone) => ({
+        ...zone,
+        damageOps: zone.ops.filter(
+          (op): op is Extract<SkillDef["cellEffects"][string][number], { type: "damage" }> => op.type === "damage"
+        ),
+        statusSignature: JSON.stringify(
+          zone.ops
+            .filter((op) => op.type === "apply_status")
+            .map((op) => JSON.stringify(op))
+            .sort()
+        ),
+      }))
+      .filter((zone) => zone.damageOps.length > 0);
+    if (zones.length < 2) continue;
+
+    const multiplierOf = (zone: (typeof zones)[number]) => zone.damageOps.reduce((acc, op) => acc + op.multiplier, 0);
+    const lowest = zones.reduce((a, b) => (multiplierOf(a) <= multiplierOf(b) ? a : b));
+    const highest = zones.reduce((a, b) => (multiplierOf(a) >= multiplierOf(b) ? a : b));
+    if (multiplierOf(lowest) === multiplierOf(highest)) continue;
+
+    if (2 * multiplierOf(lowest) < 1.2 * multiplierOf(highest)) {
+      add(
+        `${path}.cellEffects`,
+        `AOE 收益不变式：2 × 最低档倍率(${lowest.key}=${multiplierOf(lowest)}) 必须 ≥ 1.2 × 最高档倍率(${highest.key}=${multiplierOf(highest)})`
+      );
+    }
+    for (const zone of zones) {
+      if (zone.statusSignature !== highest.statusSignature) {
+        add(
+          `${path}.cellEffects.${zone.key}`,
+          `AOE 收益不变式：伤害档位 "${zone.key}" 与 "${highest.key}" 的附带状态必须一致`
+        );
+        break;
+      }
+    }
+
+    // 实战验算：按持有者面板与敌对阵营防御中位数复算（与 combat.ts computeDamage 同公式）。
+    const zoneDamage = (zone: (typeof zones)[number], caster: UnitDef, defense: number) =>
+      zone.damageOps.reduce((acc, op) => {
+        const stat = op.element === "physical" ? caster.stats.attack : caster.stats.magic;
+        return acc + Math.max(1, Math.round(stat * op.multiplier - defense));
+      }, 0);
+    for (const caster of ownersBySkill.get(skill.id) ?? []) {
+      const defense = medianDefense(caster.faction === "player" ? "enemy" : "player");
+      if (defense === null) continue;
+      const two = 2 * zoneDamage(lowest, caster, defense);
+      const one = zoneDamage(highest, caster, defense);
+      if (two <= one) {
+        add(
+          `${path}.cellEffects`,
+          `AOE 收益不变式：${caster.id} 使用时，2 × 最低档伤害(${two}) 必须 > 1 × 最高档伤害(${one})（防御按 ${defense} 验算）`
+        );
+      }
+    }
+  }
 }
 
 type AddIssue = (path: string, message: string) => void;

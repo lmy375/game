@@ -2,8 +2,8 @@
   {
     "id": "cross_fire",
     "name": "十字火焰",
-    "description": "对目标点及上下左右造成火焰伤害，中心更高并附加燃烧。聚怪后收益最大。",
-    "shortDescription": "十字范围火焰爆发",
+    "description": "对目标点及上下左右造成火焰伤害并点燃全部命中者，中心略高。聚怪后收益最大。",
+    "shortDescription": "十字范围火焰爆发+全域燃烧",
     "castRange": { "type": "distance", "min": 1, "max": 4 },
     "patternId": "cross_1",
     "targetType": "cell",
@@ -12,10 +12,13 @@
     "aiHint": "aoe",
     "cellEffects": {
       "center": [
-        { "type": "damage", "element": "fire", "multiplier": 1.5 },
+        { "type": "damage", "element": "fire", "multiplier": 1.2 },
         { "type": "apply_status", "status": "burn", "duration": 2, "magnitude": 10 }
       ],
-      "arm": [{ "type": "damage", "element": "fire", "multiplier": 0.8 }]
+      "arm": [
+        { "type": "damage", "element": "fire", "multiplier": 0.9 },
+        { "type": "apply_status", "status": "burn", "duration": 2, "magnitude": 10 }
+      ]
     }
   },
   {
@@ -94,7 +97,7 @@
     "aiHint": "attack",
     "cellEffects": {
       "center": [{ "type": "damage", "element": "physical", "multiplier": 1.0 }],
-      "arm": [{ "type": "damage", "element": "physical", "multiplier": 0.5 }]
+      "arm": [{ "type": "damage", "element": "physical", "multiplier": 0.8 }]
     }
   },
   {
@@ -130,7 +133,7 @@
   {
     "id": "tempest",
     "name": "风暴",
-    "description": "对目标点及上下左右召唤风暴，中心伤害更高。",
+    "description": "对目标点及上下左右召唤风暴，中心伤害略高。",
     "shortDescription": "十字范围风暴",
     "castRange": { "type": "distance", "min": 1, "max": 5 },
     "patternId": "cross_1",
@@ -139,7 +142,7 @@
     "cooldown": 3,
     "aiHint": "aoe",
     "cellEffects": {
-      "center": [{ "type": "damage", "element": "wind", "multiplier": 1.6 }],
+      "center": [{ "type": "damage", "element": "wind", "multiplier": 1.2 }],
       "arm": [{ "type": "damage", "element": "wind", "multiplier": 0.9 }]
     }
   },
@@ -156,7 +159,7 @@
     "aiHint": "attack",
     "cellEffects": {
       "center": [{ "type": "damage", "element": "fire", "multiplier": 1.0 }],
-      "arm": [{ "type": "damage", "element": "fire", "multiplier": 0.5 }]
+      "arm": [{ "type": "damage", "element": "fire", "multiplier": 0.75 }]
     }
   },
   {
@@ -302,7 +305,7 @@
     "aiHint": "attack",
     "cellEffects": {
       "center": [{ "type": "damage", "element": "ice", "multiplier": 1.0 }],
-      "arm": [{ "type": "damage", "element": "ice", "multiplier": 0.5 }]
+      "arm": [{ "type": "damage", "element": "ice", "multiplier": 0.75 }]
     }
   },
   {
