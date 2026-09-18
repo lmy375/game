@@ -4,7 +4,7 @@
  */
 import { Position } from "@core/index";
 import { ViewModel } from "../../interaction";
-import { skillIconUrls } from "./AssetManifest";
+import { skillIconUrls } from "../shared/HudAssets";
 
 export interface HudEls {
   menu: HTMLElement;

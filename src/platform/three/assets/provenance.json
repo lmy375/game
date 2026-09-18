@@ -1,0 +1,164 @@
+[
+  {
+    "file": "models/Knight.glb",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Knight.glb",
+    "sourceSha256": "60428e3abc09ba83e595d256e3af8c5c976b46cdae599f0802fc82b4a3445168",
+    "sha256": "574f4b27d02b907699558f5bc020ab145c7bd7feed3fa4c496106971bc564890",
+    "processing": "Retain 12 authored skeletal clips; losslessly compact accessors/bufferViews."
+  },
+  {
+    "file": "models/Mage.glb",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Mage.glb",
+    "sourceSha256": "cf898585da33fab50c724d31605fb931eb2912e6d2280092141e98ca81ad507d",
+    "sha256": "a038169d43413a58940cb7f7e6e7295b70f4a2d3408385f29ad5d75c19235c19",
+    "processing": "Retain 12 authored skeletal clips; losslessly compact accessors/bufferViews."
+  },
+  {
+    "file": "models/Rogue_Hooded.glb",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Rogue_Hooded.glb",
+    "sourceSha256": "93e6e25213009952276d9cf34f5d96a243767334c66f280db0433ddfabb91545",
+    "sha256": "a6225ffbb03a72f0429884a2263fb0fad1f2dc572414c94cbc47253b23598205",
+    "processing": "Retain 12 authored skeletal clips; losslessly compact accessors/bufferViews."
+  },
+  {
+    "file": "models/Barbarian.glb",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Barbarian.glb",
+    "sourceSha256": "cefc311a0e10c7858b6141f5ada7e33268727564fb8ac1347aab97d000669cc6",
+    "sha256": "e7646e59bc019f6dc333afeb9d59d56e677b723d28ec8a975be7b80051b4a657",
+    "processing": "Retain 12 authored skeletal clips; losslessly compact accessors/bufferViews."
+  },
+  {
+    "file": "environment/floor_tile_small.glb",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/addons/kaykit_dungeon_remastered/Assets/gltf/floor_tile_small.gltf.glb",
+    "sourceSha256": "645f02c82d1fa15e3e1daa7892b70c8a9d44f44d0e520d76ae6afd08633c5b34",
+    "sha256": "645f02c82d1fa15e3e1daa7892b70c8a9d44f44d0e520d76ae6afd08633c5b34",
+    "processing": "Unmodified upstream file."
+  },
+  {
+    "file": "environment/floor_tile_small_broken_A.glb",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/addons/kaykit_dungeon_remastered/Assets/gltf/floor_tile_small_broken_A.gltf.glb",
+    "sourceSha256": "d1acc3407f941623b3b01ec9a1751c36a5ca82bb14721fc8f28e5559317edad4",
+    "sha256": "d1acc3407f941623b3b01ec9a1751c36a5ca82bb14721fc8f28e5559317edad4",
+    "processing": "Unmodified upstream file."
+  },
+  {
+    "file": "environment/floor_tile_small_weeds_A.glb",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/addons/kaykit_dungeon_remastered/Assets/gltf/floor_tile_small_weeds_A.gltf.glb",
+    "sourceSha256": "95fcb7701819428da04318aafbd9410b994217424d1453844ba3e6f1f91a28f3",
+    "sha256": "95fcb7701819428da04318aafbd9410b994217424d1453844ba3e6f1f91a28f3",
+    "processing": "Unmodified upstream file."
+  },
+  {
+    "file": "environment/pillar_decorated.glb",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/addons/kaykit_dungeon_remastered/Assets/gltf/pillar_decorated.gltf.glb",
+    "sourceSha256": "eecf7d454a1b6767a113e2490cb1536134abea0b57329a50cf2250d3ed8e2f65",
+    "sha256": "eecf7d454a1b6767a113e2490cb1536134abea0b57329a50cf2250d3ed8e2f65",
+    "processing": "Unmodified upstream file."
+  },
+  {
+    "file": "environment/wall_half.glb",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/addons/kaykit_dungeon_remastered/Assets/gltf/wall_half.gltf.glb",
+    "sourceSha256": "9e65c438f55d96cbcd554489bf2dec236feb575a8192c709d3bf6886599339a8",
+    "sha256": "9e65c438f55d96cbcd554489bf2dec236feb575a8192c709d3bf6886599339a8",
+    "processing": "Unmodified upstream file."
+  },
+  {
+    "file": "environment/wall_broken.glb",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/addons/kaykit_dungeon_remastered/Assets/gltf/wall_broken.gltf.glb",
+    "sourceSha256": "ee7598ef2b88aaeb7b61e46d5f1da1a059de3860b080b38b7a507ca2f461302c",
+    "sha256": "ee7598ef2b88aaeb7b61e46d5f1da1a059de3860b080b38b7a507ca2f461302c",
+    "processing": "Unmodified upstream file."
+  },
+  {
+    "file": "environment/barrel_large.glb",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/addons/kaykit_dungeon_remastered/Assets/gltf/barrel_large.gltf.glb",
+    "sourceSha256": "9fae6a79056241baf253fe9272dc7a7ddb174e1caf153eb5013c58a596722148",
+    "sha256": "9fae6a79056241baf253fe9272dc7a7ddb174e1caf153eb5013c58a596722148",
+    "processing": "Unmodified upstream file."
+  },
+  {
+    "file": "environment/rubble_large.glb",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/addons/kaykit_dungeon_remastered/Assets/gltf/rubble_large.gltf.glb",
+    "sourceSha256": "0292da1b5788a5a52b616d5d27d3270c676a5fbf9e921b6dd3dc30364d355b54",
+    "sha256": "0292da1b5788a5a52b616d5d27d3270c676a5fbf9e921b6dd3dc30364d355b54",
+    "processing": "Unmodified upstream file."
+  },
+  {
+    "file": "environment/torch_mounted.glb",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/addons/kaykit_dungeon_remastered/Assets/gltf/torch_mounted.gltf.glb",
+    "sourceSha256": "a617c159e02932db48ca81ec46f1f100acc8904fb6ece43e919d2f93c13950e9",
+    "sha256": "a617c159e02932db48ca81ec46f1f100acc8904fb6ece43e919d2f93c13950e9",
+    "processing": "Unmodified upstream file."
+  },
+  {
+    "file": "environment/banner_red.glb",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/addons/kaykit_dungeon_remastered/Assets/gltf/banner_red.gltf.glb",
+    "sourceSha256": "c69c6eaffc834d6dcc7d19f8fd87145af4323265755588bf5bde85d71e0e3ff3",
+    "sha256": "c69c6eaffc834d6dcc7d19f8fd87145af4323265755588bf5bde85d71e0e3ff3",
+    "processing": "Unmodified upstream file."
+  },
+  {
+    "file": "environment/banner_blue.glb",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/addons/kaykit_dungeon_remastered/Assets/gltf/banner_blue.gltf.glb",
+    "sourceSha256": "219995a647a17a506770f998b2194e882e3c078753cebe37e608e2b65ed14d5a",
+    "sha256": "219995a647a17a506770f998b2194e882e3c078753cebe37e608e2b65ed14d5a",
+    "processing": "Unmodified upstream file."
+  },
+  {
+    "file": "environment/floor_tile_big_spikes.glb",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/addons/kaykit_dungeon_remastered/Assets/gltf/floor_tile_big_spikes.glb",
+    "sourceSha256": "7a4e94decf860b64456a45cc1c2d7bb26f0b3ca75824ccf2c4d0addee088d9ad",
+    "sha256": "7a4e94decf860b64456a45cc1c2d7bb26f0b3ca75824ccf2c4d0addee088d9ad",
+    "processing": "Unmodified upstream file."
+  },
+  {
+    "file": "licenses/KayKit-Adventurers.txt",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/LICENSE.txt",
+    "sourceSha256": "ae322141814056dda0deea7540d74c41d87aee1da319977cd1bd84ee5a923629",
+    "sha256": "ae322141814056dda0deea7540d74c41d87aee1da319977cd1bd84ee5a923629",
+    "processing": "Unmodified upstream file."
+  },
+  {
+    "file": "licenses/KayKit-Dungeon.txt",
+    "creator": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "source": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/LICENSE.txt",
+    "sourceSha256": "c5f17abf619731f57f6bbff450f6484214605c13aa96bb75bbcfc70930941ff7",
+    "sha256": "c5f17abf619731f57f6bbff450f6484214605c13aa96bb75bbcfc70930941ff7",
+    "processing": "Unmodified upstream file."
+  }
+]

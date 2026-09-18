@@ -6,7 +6,7 @@
 
 > 架构分层：战斗逻辑为**纯 TypeScript**（`game-core`），不依赖任何引擎；
 > 玩家操作（`interaction`）、养成/剧情（`game-meta` + `campaign`）也都是引擎无关的纯逻辑；
-> 表现层（**PixiJS 2D**，DOM HUD）只消费 `BattleState` / `BattleEvent` 与各层的 ViewModel，因此可平滑移植到其它引擎或小游戏平台。
+> 表现层（默认 **Three.js 3D**，另保留 **PixiJS 2D**；共用 DOM HUD）只消费 `BattleState` / `BattleEvent` 与各层的 ViewModel，因此可平滑移植到其它引擎或小游戏平台。
 
 ## 核心特点
 
@@ -23,14 +23,30 @@
 
 ```bash
 pnpm install
-pnpm dev          # 启动 PixiJS 表现层，打开终端给出的本地地址即可游玩
+pnpm dev          # 启动 Three.js 3D 表现层
+pnpm dev:pixi     # 启动保留的 PixiJS 2D 表现层
 pnpm test         # vitest 测试（内核 / 交互 / 道具 / 流程 / 数值验证）
 pnpm typecheck    # 严格模式类型检查
 pnpm build        # 类型检查 + 生产构建
 ```
 
-> 表现层只保留 **PixiJS**。`game-core`/`interaction`/`game-meta`/`campaign` 为引擎无关纯逻辑，
+> 默认表现层为 **Three.js 3D**，原 PixiJS 可用 `pnpm dev:pixi` 启动、`pnpm build:pixi` 构建到 `dist-pixi/`。
+> `game-core`/`interaction`/`game-meta`/`campaign` 为引擎无关纯逻辑，
 > 若要新增表现层只需实现 `SessionHost` 与 `CampaignHost`。
+
+## 三维表现层
+
+默认 `pnpm dev` 启动三维版；生产构建 `pnpm build` 输出到 `dist/`。需要支持 WebGL 2 的浏览器。
+
+- **真实立体场景**：透视镜头、可旋转/缩放视角、建模石板和遗迹、实体角色、阴影、环境反射、SSAO、Bloom 与 ACES 色调映射。
+- **作者骨骼动画**：使用 KayKit 的带蒙皮角色与装备，动作渐变衔接，按战斗事件播放行走、近战、射击、施法、受击、格挡、死亡。
+- **完整规则接入**：继续使用 BattleSession / CampaignDirector；移动撤销、伤害预览、位移箭头、敌方威胁、消耗品、整备、剧情、奖励和本地存档沿用现有逻辑。
+- **输入**：点击格子/角色，拖动旋转，滚轮或双指缩放；`R` 重置镜头，右键 / `Esc` 取消，`Enter` 确认可释放技能。右上按钮可切换移动/威胁范围及高画质/流畅模式。
+- **资源**：约 3.9 MB 的本地 GLB；失败显示重新加载入口；页面隐藏暂停渲染，切关取消旧动画，销毁时释放 GPU 资源。初始镜头和窗口缩放按棋盘范围取景。
+
+在标题页开始新战役或继续存档。右上「选关」可跳转战役节点。开发验证可用 `/?level=level_004` 直接进入独立战斗（不结算战役奖励、不覆盖战役进度）。
+
+美术为**风格化奇幻角色**，8 个职业复用 4 套作者模型；并非定制写实人物。素材授权、复用关系和当前武器限制见 [Three.js 素材说明](src/platform/three/THIRD_PARTY_ASSETS.md)。
 
 ## 怎么玩
 
@@ -87,7 +103,9 @@ src/
   interaction/          # 引擎无关的玩家操作状态机（BattleSession → ViewModel/SessionHost）
   campaign/             # 流程编排（CampaignDirector → 标题/过场/战斗/结算/整备/结局）
   platform/
-    pixi/               # 唯一表现层：PixiJS 2D 渲染、DOM HUD、输入控制器、本地存档
+    three/              # 默认 Three.js 3D：角色骨骼、场景、镜头、动画、输入和素材授权
+    shared/             # 引擎无关的 DOM HUD 图片资源
+    pixi/               # 保留 PixiJS 2D；DOM HUD、战役屏幕、本地存档仍被两端共用
     wechat/             # 微信小游戏移植说明（占位）
 tests/                  # vitest 测试（含贪心 bot 全战役通关的数值验证）
 ```

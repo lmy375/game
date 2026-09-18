@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#111b20" />
+  <meta name="description" content="阵棋：以阵为术，以一敌众。三维回合制战棋。" />
+  <title>阵棋 · 烬土之役</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header>
+      <a class="brand" href="./" aria-label="阵棋主页"><span class="brand-mark">阵</span><span>阵棋<small>ZHENQI · TACTICS</small></span></a>
+      <nav class="chapter"><span id="level-number">THE EMBER CAMPAIGN</span><b id="level-name">烬土之役</b></nav>
+      <div class="toolbar">
+        <span class="engine-tag"><i></i> 立体战场</span>
+        <label id="debug-toggle-wrap" class="debug-toggle" title="显示战役选关"><input type="checkbox" id="debug-toggle" /><span class="dt-track"><span class="dt-thumb"></span></span>选关</label>
+        <label id="level-select-wrap" hidden><select id="level-select" aria-label="选择关卡"></select></label>
+        <button id="to-title" class="icon-button" title="返回标题" aria-label="返回标题">⌂</button>
+      </div>
+    </header>
+    <main>
+      <div class="board-wrap" id="board-wrap">
+        <div id="stage"></div>
+        <div class="battle-caption"><span class="eyebrow">FIELD OPERATIONS</span><h2>以阵为术，以一敌众。</h2><p>观察 · 走位 · 聚拢 · 破阵</p></div>
+        <div class="view-tools" aria-label="镜头与画面设置">
+          <button id="zoom-in" title="拉近镜头" aria-label="拉近镜头">＋</button><button id="zoom-out" title="拉远镜头" aria-label="拉远镜头">−</button><span></span><button id="reset-camera" title="重置镜头（R）" aria-label="重置镜头">⌖</button><button id="toggle-grid" class="active" title="显示移动范围" aria-pressed="true">格</button><button id="toggle-threat" title="显示敌方威胁范围" aria-pressed="false">险</button><button id="quality" class="quality-button" title="切换画质" aria-pressed="true">高画质</button>
+        </div>
+        <div class="compass" aria-hidden="true"><span>N</span><i></i></div>
+        <div class="camera-hint">拖动旋转 <span>·</span> 滚轮缩放 <span>·</span> R 复位</div>
+        <div id="unit-menu" class="unit-menu"></div><div id="confirm-bar" class="confirm-bar"></div><div id="banner" class="banner"></div>
+        <div class="battle-bottom"><span class="legend-dot move"></span>移动范围<span class="legend-dot hit"></span>技能命中<span class="legend-dot enemy"></span>敌方单位</div>
+      </div>
+      <aside class="side">
+        <section class="operation-head"><span class="eyebrow">BATTLE OBJECTIVE</span><h2>清除战场敌军</h2><p><span class="objective-icon">◇</span>击败所有敌人 <b id="alive-count"></b></p></section>
+        <section class="turn-panel"><div class="turn-top"><span class="eyebrow">当前行动</span><span id="turn" class="turn"></span></div><h2 id="active-name">等待指令</h2><p id="active-status">选择落点或技能</p><div class="turn-line"></div></section>
+        <section class="panel roster-panel"><h2><span>战场序列</span><small>INITIATIVE</small></h2><div id="info" class="info"></div></section>
+        <section class="panel log-panel"><h2><span>战况记录</span><small>COMBAT LOG</small></h2><div id="log" class="log"></div></section>
+        <div id="hint" class="hint"></div>
+        <div class="side-footer"><i></i> 全局已就绪 <span>策略决定胜负</span></div>
+      </aside>
+    </main>
+    <footer><span>烬土之役 <i>/</i> THE EMBER CAMPAIGN</span><span>点击单位展开技能 · 右键 / Esc 取消 · Enter 释放</span><span>01—10 <i>◆</i></span></footer>
+  </div>
+  <div id="screen-root" class="screen-root"></div>
+  <div id="loading" class="loading-screen" role="status" aria-live="polite"><div class="loading-mark">阵</div><p class="eyebrow">THE EMBER CAMPAIGN</p><h1>战场正在苏醒</h1><p id="loading-message">正在准备角色、动作与三维场景…</p><div class="loading-track"><i id="loading-progress"></i></div><small>阵棋 · 烬土之役</small></div>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

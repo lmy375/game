@@ -1,9 +1,9 @@
 import { defineConfig } from "vite";
 import { resolve } from "node:path";
 
-// 唯一表现层：PixiJS 2D。（旧 web/three 表现层已下线。）
-export default defineConfig({
-  root: "src/platform/pixi",
+// Three.js is the default; --mode pixi preserves the original 2D renderer.
+export default defineConfig(({ mode }) => ({
+  root: mode === "pixi" ? "src/platform/pixi" : "src/platform/three",
   resolve: {
     alias: {
       "@core": resolve(__dirname, "src/game-core"),
@@ -18,8 +18,8 @@ export default defineConfig({
     root: resolve(__dirname),
   },
   build: {
-    outDir: resolve(__dirname, "dist"),
+    outDir: resolve(__dirname, mode === "pixi" ? "dist-pixi" : "dist"),
     emptyOutDir: true,
     target: "es2020",
   },
-});
+}));

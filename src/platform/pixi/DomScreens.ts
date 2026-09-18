@@ -4,7 +4,7 @@
  */
 import { TitleVM, CutsceneVM, ResultVM, EndingVM, PortraitVM, LoadoutVM, InventoryItemVM, StatBonusVM, RarityVM } from "../../campaign";
 import { EquipSlot } from "@meta/index";
-import { portraitUrlFor } from "./AssetManifest";
+import { portraitUrlFor } from "../shared/HudAssets";
 
 export interface ScreenHandlers {
   title(id: "new" | "continue" | "loadout"): void;
